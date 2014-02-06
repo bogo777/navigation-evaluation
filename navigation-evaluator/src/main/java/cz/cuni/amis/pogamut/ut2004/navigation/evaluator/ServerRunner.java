@@ -16,6 +16,7 @@
  */
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator;
 
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.IEvaluationTask;
 import cz.cuni.amis.utils.exception.PogamutException;
 import java.io.File;
 import java.io.FilenameFilter;
@@ -35,22 +36,29 @@ import java.util.logging.SimpleFormatter;
  */
 public class ServerRunner {
 
-    //Platforms specific path in one place in code for now.
+    //Platforms specific paths in one place in code for now.
     public static String recordsPath = System.getProperty("os.name").toLowerCase().contains("linux") ? "/home/bohuslav_machac/UT2004-Dedicated-3369-Linux/Demos" : "C:/Games/UT/Demos";
     public static String executionDir = System.getProperty("os.name").toLowerCase().contains("linux") ? "/home/bohuslav_machac" : "C:/Temp/Pogamut";
     public static String unrealHome = System.getProperty("os.name").toLowerCase().contains("linux") ? "/home/bohuslav_machac/UT2004-Dedicated-3369-Linux" : "C:/Games/UT";
 
     public ServerRunner() {
+        //TODO: Is this duplicating output?
         log.setLevel(Level.ALL);
         ConsoleHandler handler = new ConsoleHandler();
         handler.setFormatter(new SimpleFormatter());
         handler.setLevel(Level.ALL);
         log.addHandler(handler);
     }
+    
     private List<EvaluatorHandle> evaluations = new LinkedList<EvaluatorHandle>();
     private List<File> tasks;
     private static final Logger log = Logger.getLogger("ServerRunner");
 
+    /**
+     * Initializes a list of {@link IEvaluationTask} represented in XML by XSTream serialization. Uses passed directory or current of omitted.
+     * 
+     * @param args 
+     */
     public void initTasks(String[] args) {
         tasks = new ArrayList<File>();
 
@@ -67,15 +75,23 @@ public class ServerRunner {
         tasks.addAll(Arrays.asList(x.listFiles(filter)));
     }
 
-    public static void main(String args[]) throws PogamutException {
+    /**
+     * Main method for ServerRunner. Evaluates task from given directory.
+     * 
+     * @param args
+     * @throws PogamutException 
+     */
+    public static void main(String args[]) {
         ServerRunner runner = new ServerRunner();
 
         runner.initTasks(args);
 
+        //Check if there are enough cores available for multiple concurrent evaluations.
         if (hasCapacityForMultiEvaluation()) {
             log.fine("Multi evaluation");
             runner.run();
         } else {
+            //Run the evaluation directly
             log.fine("Direct evaluation");
             DirectRunner directRunner = new DirectRunner(runner);
             directRunner.run();
@@ -84,6 +100,9 @@ public class ServerRunner {
         System.exit(0);
     }
 
+    /**
+     * Loop of the runner. Every 5 seconds checks for finished tasks and available resources to start new evaluations.
+     */
     private void run() {
         log.log(Level.INFO, "Starting multiple evaluation of {0} tasks", tasks.size());
         boolean done = tasks.isEmpty();
@@ -115,6 +134,9 @@ public class ServerRunner {
 
     }
 
+    /**
+     * Checks status of current evaluations.
+     */
     private void checkRunningEvaluations() {
         List<EvaluatorHandle> finishedHandles = new LinkedList<EvaluatorHandle>();
         for (EvaluatorHandle handle : evaluations) {
@@ -143,19 +165,34 @@ public class ServerRunner {
         }
     }
 
+    /**
+     * Check if there are enough cores available for multiple concurrent evaluations.
+     * 
+     * @return 
+     */
     private static boolean hasCapacityForMultiEvaluation() {
-        return true;
-//        int threshold = 3;
-//        int available = Runtime.getRuntime().availableProcessors();
-//        return available >= threshold;
+        //return true;
+        int threshold = 3;
+        int available = Runtime.getRuntime().availableProcessors();
+        return available >= threshold;
     }
 
+    /**
+     * Checks for available resources.
+     * 
+     * @return 
+     */
     private boolean hasCapacity() {
         int used = 0 + evaluations.size() * 2;
         int available = Runtime.getRuntime().availableProcessors();
         return used < available;
     }
 
+    /**
+     * Gets new task to evaluate.
+     * 
+     * @return 
+     */
     protected File getFreeTask() {
         for (File task : tasks) {
             boolean isFree = true;
@@ -172,6 +209,11 @@ public class ServerRunner {
         return null;
     }
 
+    /**
+     * Gets list of tasks.
+     * 
+     * @return 
+     */
     public List<File> getTasks() {
         return tasks;
     }

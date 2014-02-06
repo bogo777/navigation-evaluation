@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2013 AMIS research group, Faculty of Mathematics and Physics, Charles University in Prague, Czech Republic
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task;
 
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.MapPathsBot;
@@ -6,6 +22,7 @@ import java.io.File;
 import java.util.List;
 
 /**
+ * Task for evaluation of types of map paths.
  *
  * @author Bogo
  */
@@ -18,6 +35,15 @@ public class MapPathsEvaluationTask extends EvaluationTask<MapPathsBotParameters
     private PathType pathType;
     private int batchNumber = 0;
 
+    /**
+     * Default constructor.
+     * 
+     * @param mapName
+     * @param navigation
+     * @param pathPlanner
+     * @param resultPath
+     * @param pathType 
+     */
     public MapPathsEvaluationTask(String mapName, String navigation, String pathPlanner, String resultPath, PathType pathType) {
         super(MapPathsBotParameters.class, MapPathsBot.class);
         this.navigation = navigation;
@@ -27,6 +53,16 @@ public class MapPathsEvaluationTask extends EvaluationTask<MapPathsBotParameters
         this.pathType = pathType;
     }
 
+    /**
+     * Constructor with explicit batch number. Could be used to differentiate the results for further processing.
+     * 
+     * @param mapName
+     * @param navigation
+     * @param pathPlanner
+     * @param resultPath
+     * @param pathType
+     * @param batchNumber 
+     */
     public MapPathsEvaluationTask(String mapName, String navigation, String pathPlanner, String resultPath, PathType pathType, int batchNumber) {
         this(mapName, navigation, pathPlanner, resultPath, pathType);
         this.batchNumber = batchNumber;
@@ -60,10 +96,20 @@ public class MapPathsEvaluationTask extends EvaluationTask<MapPathsBotParameters
         return pathType;
     }
 
+    /**
+     * Gets batch number.
+     * 
+     * @return 
+     */
     public int getBatchNumber() {
         return batchNumber;
     }
 
+    /**
+     * Whether is part of explicitly numbered batch.
+     * 
+     * @return 
+     */
     public boolean isBatchTask() {
         return batchNumber > 0;
     }
@@ -74,6 +120,7 @@ public class MapPathsEvaluationTask extends EvaluationTask<MapPathsBotParameters
      * @param args Command line arguments.
      * @return Task built from command line arguments.
      */
+    @Deprecated
     public static MapPathsEvaluationTask buildFromArgs(String[] args) {
         //TODO: Check validity of args?
         if (args.length == 5) {
@@ -92,6 +139,7 @@ public class MapPathsEvaluationTask extends EvaluationTask<MapPathsBotParameters
      *
      * @param command Arguments list to fill.
      */
+    @Deprecated
     public void toArgs(List<String> command) {
         command.add(mapName);
         command.add(navigation);
@@ -117,8 +165,11 @@ public class MapPathsEvaluationTask extends EvaluationTask<MapPathsBotParameters
         return String.format("MapPaths_%s_%s_%s_%d", navigation, mapName, pathType.name(), batchNumber);
     }
 
+    /**
+     * Path types to count.
+     * 
+     */
     public enum PathType {
-
         ALL, NO_JUMPS, NO_LIFTS, NO_JUMP_NO_LIFTS
     }
 }

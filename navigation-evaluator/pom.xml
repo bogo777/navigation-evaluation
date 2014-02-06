@@ -9,9 +9,21 @@
 
     <name>navigation-evaluator</name>
     <url>http://maven.apache.org</url>
+    
+    <organization>
+        <name>AMIS research group, Faculty of Mathematics and Physics, Charles University in Prague, Czech Republic</name>
+        <url>http://amis.mff.cuni.cz</url>
+    </organization>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        
+        <!-- MANIFEST PROPERTIES -->
+        <manifest.specification.vendor>AMIS research group</manifest.specification.vendor>
+        <manifest.implementation.vendor>AMIS research group</manifest.implementation.vendor>
+
+          <!-- Lets NetBeans now, that new files should have GPL 3.0 license -->
+        <netbeans.hint.license>gpl30</netbeans.hint.license>
     </properties>
     
     <build>

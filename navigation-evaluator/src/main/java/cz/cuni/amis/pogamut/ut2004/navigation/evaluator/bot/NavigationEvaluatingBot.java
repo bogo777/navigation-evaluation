@@ -45,15 +45,12 @@ import cz.cuni.amis.pogamut.ut2004.utils.UT2004BotRunner;
 import cz.cuni.amis.utils.collections.MyCollections;
 import cz.cuni.amis.utils.exception.PogamutException;
 import cz.cuni.amis.utils.flag.FlagListener;
-import java.io.IOException;
 import java.util.Date;
-import java.util.logging.FileHandler;
 import java.util.logging.Level;
-import java.util.logging.SimpleFormatter;
 
 /**
  * Bot for evaluating navigations. Initialized with navigation given by
- * parameters and performs evaluation on given map.
+ * parameters and performs evaluation on given map. Extended from original example archetype from Pogamut.
  *
  * @author Bogo
  */
@@ -70,9 +67,8 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
     private NavigationState state;
     private Date startDate;
     private EvaluationResult result;
-    //TODO: Move
-    int total = 0;
-    int processed = 0;
+    
+    
 
     public NavigationEvaluatingBot() {
     }
@@ -81,6 +77,12 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
         return (BotNavigationParameters) bot.getParams();
     }
 
+    /**
+     * Initializes the path finding from parameters with use of {@link NavigationFactory}.
+     * 
+     * @param bot 
+     * 
+     */
     @Override
     protected void initializePathFinding(UT2004Bot bot) {
         fwMap = new FloydWarshallMap(bot);
@@ -127,8 +129,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
         pathContainer = new PathContainer(world);
         NavigationFactory.initializePathContainer(pathContainer, this);
 
-        total = pathContainer.size();
-        result = new EvaluationResult(total, info.game.getMapName(), log, getParams().getResultPath());
+        result = new EvaluationResult(pathContainer.size(), info.game.getMapName(), log, getParams().getResultPath());
 
         state = NavigationState.NotMoving;
 
@@ -227,13 +228,12 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
         if (state == NavigationState.AtTheTarget) {
             //Write result and find new path -> through NotMoving
             log.info("Successfuly reached end. Hooray!");
-            ++processed;
             if (getParams().isPathRecord()) {
                 result.stopRecording(act, currentPath, getParams().keepOnlyFailedRecords());
             }
             result.addResult(currentPath, PathResult.ResultType.Completed, (new Date()).getTime() - startDate.getTime());
             startDate = null;
-            log.info(String.format("Completed %d/%d paths...", processed, total));
+            log.info(String.format("Completed %d/%d paths...", result.getProcessedCount(), result.getTotalPaths()));
             currentPath = getNextPath(currentPath.getEnd());
 
             state = NavigationState.NotMoving;
@@ -372,7 +372,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
         if (path == null) {
             path = pathContainer.getPath();
         }
-        if (path == null || processed >= getParams().getLimitForCompare()) {
+        if (path == null || result.getProcessedCount() >= getParams().getLimitForCompare()) {
             wrapUpEvaluation();
         }
         return path;

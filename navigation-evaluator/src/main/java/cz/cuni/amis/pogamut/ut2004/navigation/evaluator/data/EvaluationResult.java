@@ -42,7 +42,7 @@ public class EvaluationResult {
     private int completedCount = 0;
     private int failedCount = 0;
     private int notBuiltCount = 0;
-    private int proccessedCount = 0;
+    private int processedCount = 0;
     private String resultPath;
 
     public EvaluationResult(int total, String map, LogCategory log, String resultPath) {
@@ -61,7 +61,7 @@ public class EvaluationResult {
      * @param duration Duration of navigation.
      */
     public void addResult(Path path, PathResult.ResultType type, long duration) {
-        ++proccessedCount;
+        ++processedCount;
         switch (type) {
             case Completed:
                 ++completedCount;
@@ -88,7 +88,7 @@ public class EvaluationResult {
             BufferedWriter out = new BufferedWriter(fstream);
             out.write("Map;Total;Processes;Completed;Failed;NotBuilt");
             out.newLine();
-            out.write(String.format("%s;%d;%d;%d;%d;%d", mapName, totalPaths, proccessedCount, completedCount, failedCount, notBuiltCount));
+            out.write(String.format("%s;%d;%d;%d;%d;%d", mapName, totalPaths, processedCount, completedCount, failedCount, notBuiltCount));
             out.newLine();
             out.close();
         } catch (IOException ex) {
@@ -142,14 +142,32 @@ public class EvaluationResult {
         return resultFile;
     }
 
+    /**
+     * Starts recording.
+     * 
+     * @param act 
+     */
     public void startRecording(IAct act) {
         act.act(new Record(getRecordName()));
     }
 
+    /**
+     * Starts recording of path. Saves record to corresponding file.
+     * 
+     * @param act
+     * @param path 
+     */
     public void startRecording(IAct act, Path path) {
         act.act(new Record(getRecordName(path)));
     }
 
+    /**
+     * Stops recording of path. Possibly deletes the record.
+     * 
+     * @param act
+     * @param path
+     * @param delete 
+     */
     public void stopRecording(IAct act, Path path, boolean delete) {
         act.act(new StopRecord());
         try {
@@ -168,6 +186,12 @@ public class EvaluationResult {
         }
     }
 
+    /**
+     * Stops recording. Possibly deletes the record.
+     * 
+     * @param act
+     * @param delete 
+     */
     public void stopRecording(IAct act, boolean delete) {
         act.act(new StopRecord());
         try {
@@ -204,7 +228,30 @@ public class EvaluationResult {
         return getRecordName() + path.getId().replace('.', '_');
     }
 
+    /**
+     * If the evaluation contains failed paths.
+     * 
+     * @return 
+     */
     public boolean hasFailedResult() {
         return failedCount > 0;
     }
+
+    /**
+     * Total number of paths for evaluation.
+     * 
+     * @return 
+     */
+    public int getTotalPaths() {
+        return totalPaths;
+    }
+
+    /**
+     * Number of processed paths.
+     * 
+     * @return 
+     */
+    public int getProcessedCount() {
+        return processedCount;
+    } 
 }

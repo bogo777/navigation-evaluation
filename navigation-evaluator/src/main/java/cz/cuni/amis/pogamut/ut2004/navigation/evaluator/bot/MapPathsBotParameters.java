@@ -21,8 +21,7 @@ import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapPathsEvaluationT
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapPathsEvaluationTask.PathType;
 
 /**
- * Navigation parameters for creating custom navigation in
- * {@link NavigationFactory}.
+ * Parameters for {@link MapPathsBot}.
  *
  * @author Bogo
  */
@@ -30,6 +29,11 @@ public class MapPathsBotParameters extends UT2004BotParameters {
 
     private MapPathsEvaluationTask task;
 
+    /**
+     * Default constructor.
+     * 
+     * @param task 
+     */
     public MapPathsBotParameters(MapPathsEvaluationTask task) {
         this.task = task;
     }

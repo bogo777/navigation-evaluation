@@ -41,6 +41,17 @@ public class NavigationEvaluationTask extends EvaluationTask<BotNavigationParame
     //Max number of paths to explore
     private int limit;
 
+    /**
+     * Default constructor.
+     * 
+     * @param navigation
+     * @param pathPlanner
+     * @param mapName
+     * @param onlyRelevantPaths
+     * @param limit
+     * @param resultBasePath
+     * @param recordType 
+     */
     public NavigationEvaluationTask(String navigation, String pathPlanner, String mapName, boolean onlyRelevantPaths, int limit, String resultBasePath, RecordType recordType) {
         super(BotNavigationParameters.class, NavigationEvaluatingBot.class);
         this.navigation = navigation;
@@ -53,11 +64,13 @@ public class NavigationEvaluationTask extends EvaluationTask<BotNavigationParame
         this.resultBasePath = resultBasePath;
     }
 
+    @Deprecated
     public NavigationEvaluationTask(String navigation, String pathPlanner, String mapName, boolean onlyRelevantPaths, String resultPath) {
         this(navigation, pathPlanner, mapName, onlyRelevantPaths, 30, resultPath, RecordType.FULL);
     }
 
     //TODO: Remove
+    @Deprecated
     public NavigationEvaluationTask() {
         this("navigation", "fwMap", "DM-TrainingDay", true, 10, "C:/Temp/Pogamut/stats/", RecordType.FULL);
     }
@@ -68,6 +81,7 @@ public class NavigationEvaluationTask extends EvaluationTask<BotNavigationParame
      * @param args Command line arguments.
      * @return Task built from command line arguments.
      */
+    @Deprecated
     public static NavigationEvaluationTask buildFromArgs(String[] args) {
         //TODO: Check validity of args?
         if (args.length == 7) {
@@ -85,24 +99,19 @@ public class NavigationEvaluationTask extends EvaluationTask<BotNavigationParame
         return new BotNavigationParameters(this);
     }
 
-    /**
-     * Map for evaluation.
-     *
-     * @return
-     */
     public String getMapName() {
         return mapName;
     }
 
+    /**
+     * Set map for evaluation.
+     * 
+     * @param mapName 
+     */
     public void setMapName(String mapName) {
         this.mapName = mapName;
     }
 
-    /**
-     * Whether to evaluate only relevant paths.
-     *
-     * @return
-     */
     public boolean isOnlyRelevantPaths() {
         return onlyRelevantPaths;
     }
@@ -168,6 +177,7 @@ public class NavigationEvaluationTask extends EvaluationTask<BotNavigationParame
      *
      * @param command Arguments list to fill.
      */
+    @Deprecated
     public void toArgs(List<String> command) {
         command.add(navigation);
         command.add(pathPlanner);

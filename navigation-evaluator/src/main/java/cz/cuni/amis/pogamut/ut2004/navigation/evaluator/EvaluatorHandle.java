@@ -1,10 +1,25 @@
+/*
+ * Copyright (C) 2013 AMIS research group, Faculty of Mathematics and Physics, Charles University in Prague, Czech Republic
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator;
 
 import cz.cuni.amis.utils.process.ProcessExecution;
 import cz.cuni.amis.utils.process.ProcessExecutionConfig;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.logging.Logger;
 
 /**
@@ -15,21 +30,22 @@ import java.util.logging.Logger;
  */
 public class EvaluatorHandle {
 
-    private String statusFilePath;
-    private Object evaluatorJVMHandle;
     private Status status;
-    private Date timeStamp;
     private ProcessExecution processExecution;
     private File task;
     //Allows debugging of the newly created JVM
     private boolean isDebug = false;
 
+    /**
+     * Returns file with XML representation of assigned evaluation task.
+     *
+     * @return
+     */
     public File getTask() {
         return task;
     }
 
     public EvaluatorHandle() {
-        statusFilePath = String.format("statusFile-%d", new Date().getTime());
         status = Status.NEW;
     }
 
@@ -50,7 +66,6 @@ public class EvaluatorHandle {
         String path = System.getProperty("java.home")
                 + separator + "bin" + separator + "java";
         ArrayList<String> command = new ArrayList<String>();
-        //command.add(path);
         command.add("-cp");
         command.add(classpath);
 
@@ -70,19 +85,20 @@ public class EvaluatorHandle {
         config.setRedirectStdErr(false);
         config.setRedirectStdOut(false);
         processExecution = new ProcessExecution(config, log);
-        //ProcessBuilder processBuilder = new ProcessBuilder(command);
 
         processExecution.start();
-
-
 
         status = Status.CREATED;
         return true;
     }
 
+    /**
+     * Gets status of the execution.
+     *
+     * @return
+     */
     public Status getStatus() {
         if (processExecution != null) {
-            //try {
             if (processExecution.isRunning()) {
                 return Status.RUNNING;
             }
@@ -99,16 +115,7 @@ public class EvaluatorHandle {
             }
         }
 
-//    catch(IllegalThreadStateException ex
-//
-//    
-//        ) {
-//                status = Status.RUNNING;
-//    }
-//}
         return status;
-
-
     }
 
     /**

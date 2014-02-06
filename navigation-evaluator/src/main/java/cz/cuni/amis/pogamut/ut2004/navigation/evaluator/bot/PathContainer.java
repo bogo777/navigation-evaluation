@@ -213,9 +213,9 @@ public class PathContainer {
         try {
             File repeatFile = new File(repeatFilePath);
             reader = new BufferedReader(new FileReader(repeatFile));
+             //Skip first line - contains column descriptors
+            reader.readLine();
             String line = reader.readLine();
-            //Skip first line - contains column descriptors
-            line = reader.readLine();
             while (line != null) {
                 String[] splitLine = line.split(";");
                 WorldObjectId startId = WorldObjectId.get(splitLine[1]);

@@ -6,6 +6,6 @@
   <mapName>DM-1on1-Crash</mapName>
   <onlyRelevantPaths>true</onlyRelevantPaths>
   <resultBasePath>/home/bohuslav_machac/evaluation/stats</resultBasePath>
-  <recordType>PATH_FAILED</recordType>
-  <limit>500</limit>
+  <recordType>NONE</recordType>
+  <limit>-1</limit>
 </cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.NavigationEvaluationTask>

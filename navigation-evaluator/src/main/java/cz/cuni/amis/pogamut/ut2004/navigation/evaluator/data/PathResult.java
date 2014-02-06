@@ -19,7 +19,7 @@ package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.Path;
 
 /**
- * Result of evaluation on given path.
+ * Result of evaluation on single path.
  *
  * @author Bogo
  */
