@@ -18,26 +18,16 @@ package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot;
 
 import cz.cuni.amis.pogamut.base.agent.navigation.IPathExecutorState;
 import cz.cuni.amis.pogamut.base.agent.navigation.IPathFuture;
-import cz.cuni.amis.pogamut.base.agent.navigation.IPathPlanner;
 import cz.cuni.amis.pogamut.base.agent.navigation.PathExecutorState;
 import static cz.cuni.amis.pogamut.base.agent.navigation.PathExecutorState.PATH_COMPUTATION_FAILED;
 import static cz.cuni.amis.pogamut.base.agent.navigation.PathExecutorState.STOPPED;
 import static cz.cuni.amis.pogamut.base.agent.navigation.PathExecutorState.STUCK;
 import static cz.cuni.amis.pogamut.base.agent.navigation.PathExecutorState.TARGET_REACHED;
-import cz.cuni.amis.pogamut.base.communication.worldview.object.WorldObjectId;
-import cz.cuni.amis.pogamut.base.component.exception.ComponentCantStopException;
 import cz.cuni.amis.pogamut.base3d.worldview.object.ILocated;
 import cz.cuni.amis.pogamut.base3d.worldview.object.Location;
 import cz.cuni.amis.pogamut.ut2004.agent.module.utils.TabooSet;
-import cz.cuni.amis.pogamut.ut2004.agent.navigation.IUT2004Navigation;
-import cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004AStarPathPlanner;
-import cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004GetBackToNavGraph;
-import cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004Navigation;
-import cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004PathExecutor;
-import cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004RunStraight;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.astar.UT2004AStar;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.floydwarshall.FloydWarshallMap;
-import cz.cuni.amis.pogamut.ut2004.agent.navigation.loquenavigator.LoqueNavigator;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.stuckdetector.UT2004DistanceStuckDetector;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.stuckdetector.UT2004PositionStuckDetector;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.stuckdetector.UT2004TimeStuckDetector;
@@ -51,21 +41,17 @@ import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.InitedM
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPoint;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.Self;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.EvaluationResult;
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.NavigationState;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.PathResult;
 import cz.cuni.amis.pogamut.ut2004.utils.UT2004BotRunner;
 import cz.cuni.amis.utils.collections.MyCollections;
 import cz.cuni.amis.utils.exception.PogamutException;
 import cz.cuni.amis.utils.flag.FlagListener;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 
 /**
+ * Bot for evaluating navigations. Initialized with navigation given by parameters and performs evaluation on given map.
  *
  * @author Bogo
  */
@@ -86,13 +72,10 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
     int total = 0;
     int processed = 0;
 
-//    public NavigationEvaluatingBot(IUT2004Navigation navigation, IPathPlanner pathPlanner) {
-//        this.navigation = navigation;
-//        this.pathPlanner = pathPlanner;
-//    }
+
     public NavigationEvaluatingBot() {
     }
-    
+
     public BotNavigationParameters getParams() {
         return (BotNavigationParameters) bot.getParams();
     }
@@ -102,7 +85,7 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
         fwMap = new FloydWarshallMap(bot);
         pathPlanner = NavigationFactory.getPathPlanner(this);
         navigation = NavigationFactory.getNavigation(this, bot);
-        
+
         aStar = new UT2004AStar(bot);
         pathExecutor = navigation.getPathExecutor();
 
@@ -141,7 +124,7 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
         tabooNavPoints = new TabooSet<NavPoint>(bot);
 
         pathContainer = new PathContainer(world);
-        pathContainer.buildRelevant();
+        pathContainer.buildRelevant(getParams().getLimit());
 
         total = pathContainer.size();
         result = new EvaluationResult(total, info.game.getMapName(), log, getParams().getResultPath());
@@ -198,14 +181,14 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
         // mark that another logic iteration has began
         log.info("--- Logic iteration ---");
 
-        // maybe we should end?
-        if (pathContainer.isEmpty()) {
-            wrapUpEvaluation();
-        }
+        // maybe we should end? WE should not, we can have valid path in currentPath
+//        if (pathContainer.isEmpty()) {
+//            wrapUpEvaluation();
+//        }
 
         // get next request
         if (currentPath == null) {
-            currentPath = pathContainer.getPath();
+            currentPath = getNextPath(null);
         }
 
         navigatePath();
@@ -244,13 +227,13 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
             result.addResult(currentPath, PathResult.ResultType.Completed, (new Date()).getTime() - startDate.getTime());
             log.info(String.format("Completed %d/%d paths...", processed, total));
             currentPath = getNextPath(currentPath.getEnd());
-            
+
             state = NavigationState.NotMoving;
         }
         if (state == NavigationState.Failed) {
             //Write failed report and find new path -> through NotMoving
             log.info("Navigation failed!");
-            result.addResult(currentPath, PathResult.ResultType.Failed, (new Date()).getTime() - startDate.getTime());
+            result.addResult(currentPath, PathResult.ResultType.Failed, startDate == null ? 0 : (new Date()).getTime() - startDate.getTime());
             currentPath = getNextPath(info.getNearestNavPoint());
             state = NavigationState.NotMoving;
         }
@@ -394,22 +377,20 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
 //        }
 //    }
     private Path getNextPath(NavPoint end) {
-        Path path = pathContainer.getPath(end);
+        Path path = end == null ? pathContainer.getPath() : pathContainer.getPath(end);
         if (path == null) {
             path = pathContainer.getPath();
         }
         if (path == null || processed >= getParams().getLimit()) {
-                wrapUpEvaluation();
-            }
+            wrapUpEvaluation();
+        }
         return path;
     }
 
     private void wrapUpEvaluation() {
         log.info("No more paths to navigate, we are finished...");
-        result.exportAggregate();
-        result.export();
+        result.exportAggregate(getParams().getResultUnique());
+        result.export(getParams().getResultUnique());
         bot.stop();
     }
-    
-    
 }

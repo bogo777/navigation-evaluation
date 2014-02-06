@@ -19,6 +19,7 @@ package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot;
 import cz.cuni.amis.pogamut.ut2004.bot.params.UT2004BotParameters;
 
 /**
+ * Navigation parameters for creating custom navigation in {@link NavigationFactory}.
  *
  * @author Bogo
  */
@@ -33,6 +34,7 @@ public class BotNavigationParameters extends UT2004BotParameters {
     private int limit;
     
     private String resultPath;
+    private boolean resultUnique;
 
     public String getResultPath() {
         return resultPath;
@@ -89,6 +91,15 @@ public class BotNavigationParameters extends UT2004BotParameters {
      */
     public BotNavigationParameters setNavigation(String navigation) {
         this.navigation = navigation;
+        return this;
+    }
+
+    public boolean getResultUnique() {
+        return resultUnique;
+    }
+    
+    public BotNavigationParameters setResultUnique(boolean resultUnique) {
+        this.resultUnique = resultUnique;
         return this;
     }
     

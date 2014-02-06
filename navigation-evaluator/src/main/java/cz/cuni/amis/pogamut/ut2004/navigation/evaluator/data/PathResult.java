@@ -19,6 +19,7 @@ package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.Path;
 
 /**
+ * Result of evaluation on given path.
  *
  * @author Bogo
  */
@@ -38,12 +39,19 @@ public class PathResult {
         this.duration = duration;
     }
     
+    /**
+     * Result types of evaluation.
+     */
     public enum ResultType {
         NotBuilt, Failed, Completed
     }
     
+    /**
+     * Create CSV entry about this result.
+     * @return 
+     */
     public String export() {
-        return String.format("%s;%s%s;%s;%d", path.getId(), path.getStart().getId().toString(), path.getEnd().getId().toString(), type, duration);
+        return String.format("%s;%s;%s;%s;%d", path.getId(), path.getStart().getId().toString(), path.getEnd().getId().toString(), type, duration);
     }
     
 }

@@ -17,26 +17,23 @@
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator;
 
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.EvaluationTask;
-import cz.cuni.amis.pogamut.ut2004.bot.impl.UT2004Bot;
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.BotNavigationParameters;
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.NavigationEvaluatingBot;
-import cz.cuni.amis.pogamut.ut2004.utils.UCCWrapper;
-import cz.cuni.amis.pogamut.ut2004.utils.UCCWrapperConf;
-import cz.cuni.amis.pogamut.ut2004.utils.UT2004BotRunner;
 import cz.cuni.amis.utils.exception.PogamutException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
+ * Server runner for evaluation. Capable of multiple concurrent evaluations.
  *
  * @author Bogo
  */
 public class ServerRunner {
+
+    private static boolean hasCapacityForMultiEvaluation() {
+        int threshold = 3;
+        int available = Runtime.getRuntime().availableProcessors();
+        return available >= threshold;
+    }
 
     public ServerRunner() {
     }
@@ -47,11 +44,11 @@ public class ServerRunner {
         ArrayList<EvaluationTask> myTasks = new ArrayList<EvaluationTask>();
 
         //DM-TrainingDay task
-        EvaluationTask taskDMTrainingDay = new EvaluationTask();
-        myTasks.add(taskDMTrainingDay);
+//        EvaluationTask taskDMTrainingDay = new EvaluationTask();
+//        myTasks.add(taskDMTrainingDay);
 
         //DM-Crash task
-        EvaluationTask taskDMCrash = new EvaluationTask("navigation", "fwMap", "DM-1on1-Crash", true, 10, "C:\\Temp\\Pogamut\\stats\\");
+        EvaluationTask taskDMCrash = new EvaluationTask("navigation", "fwMap", "DM-1on1-Crash", true, 10, "C:\\Temp\\Pogamut\\stats\\", true);
         myTasks.add(taskDMCrash);
 
         return myTasks;
@@ -59,7 +56,15 @@ public class ServerRunner {
 
     public static void main(String args[]) throws PogamutException {
         ServerRunner runner = new ServerRunner();
-        runner.run();
+
+        if (hasCapacityForMultiEvaluation()) {
+            runner.run();
+        } else {
+            DirectRunner directRunner = new DirectRunner(runner);
+            directRunner.run();
+        }
+
+
     }
 
     private void run() {
@@ -128,7 +133,7 @@ public class ServerRunner {
         return used < available;
     }
 
-    private EvaluationTask getFreeTask() {
+    protected EvaluationTask getFreeTask() {
         for (EvaluationTask task : tasks) {
             boolean isFree = true;
             for (EvaluatorHandle handle : evaluations) {
@@ -142,5 +147,9 @@ public class ServerRunner {
             }
         }
         return null;
+    }
+
+    public List<EvaluationTask> getTasks() {
+        return tasks;
     }
 }

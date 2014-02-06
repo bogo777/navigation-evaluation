@@ -17,6 +17,7 @@
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot;
 
 /**
+ * States of navigation for {@link NavigationEvaluatingBot}. 
  *
  * @author Bogo
  */

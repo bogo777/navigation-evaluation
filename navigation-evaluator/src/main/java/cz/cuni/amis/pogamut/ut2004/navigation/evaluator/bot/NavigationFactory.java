@@ -17,11 +17,22 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * Factory class for creating custom navigations from given parameters.
+ * Navigation must be created at bot initialization and this allows for
+ * navigation to be specified before execution without modifying bot's source
+ * code.
  *
  * @author Bogo
  */
 public class NavigationFactory {
 
+    /**
+     * Get {@link IPathPlanner} specified in params for given bot .
+     *
+     * @param bot
+     * @return
+     *
+     */
     public static IPathPlanner getPathPlanner(NavigationEvaluatingBot bot) {
         String pathPlannerType = bot.getParams().getPathPlanner();
         if (pathPlannerType != null) {
@@ -40,6 +51,13 @@ public class NavigationFactory {
         return bot.getFwMap();
     }
 
+    /**
+     * Get {@link IUT2004Navigation} specified in params for given bot .
+     *
+     * @param bot
+     * @return
+     *
+     */
     public static IUT2004Navigation getNavigation(NavigationEvaluatingBot bot, UT2004Bot utBot) {
         IUT2004PathExecutor pathExecutor = new UT2004PathExecutor<ILocated>(
                 utBot, bot.getInfo(), bot.getMove(),
@@ -48,6 +66,6 @@ public class NavigationFactory {
 
         UT2004GetBackToNavGraph getBackToNavGraph = new UT2004GetBackToNavGraph(utBot, bot.getInfo(), bot.getMove());
         UT2004RunStraight runStraight = new UT2004RunStraight(utBot, bot.getInfo(), bot.getMove());
-        return new UT2004Navigation(utBot, pathExecutor, bot.getFwMap(), getBackToNavGraph, runStraight);     
+        return new UT2004Navigation(utBot, pathExecutor, bot.getFwMap(), getBackToNavGraph, runStraight);
     }
 }

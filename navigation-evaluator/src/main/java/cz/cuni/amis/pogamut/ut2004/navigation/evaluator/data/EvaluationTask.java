@@ -18,65 +18,87 @@ package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data;
 
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.BotNavigationParameters;
 import java.util.List;
-import org.apache.commons.beanutils.ConvertUtils;
 
 /**
+ * Evaluation task. Consists of map to evaluate and parameters of navigation.
  *
  * @author Bogo
  */
 public class EvaluationTask {
-    
+
     private String navigation;
-    
     private String pathPlanner;
-    
     private String mapName;
-    
     private boolean onlyRelevantPaths;
-    
     private String resultPath;
-    
+    private boolean resultUnique;
     //Max number of paths to explore
     private int limit;
-    
-    public EvaluationTask(String navigation, String pathPlanner, String mapName, boolean onlyRelevantPaths, int limit, String resultPath) {
+
+    public EvaluationTask(String navigation, String pathPlanner, String mapName, boolean onlyRelevantPaths, int limit, String resultPath, boolean resultUnique) {
         this.navigation = navigation;
         this.pathPlanner = pathPlanner;
         this.mapName = mapName;
         this.onlyRelevantPaths = onlyRelevantPaths;
         this.limit = limit;
         this.resultPath = resultPath;
-    }
-    
-    public EvaluationTask(String navigation, String pathPlanner, String mapName, boolean onlyRelevantPaths, String resultPath) {
-        this(navigation, pathPlanner, mapName, onlyRelevantPaths, 30, resultPath);
-    }
-    
-    public EvaluationTask() {
-        this("navigation", "fwMap", "DM-TrainingDay", true, 10, "C:\\Temp\\Pogamut\\stats\\");
-    }
-    
-    public static EvaluationTask buildFromArgs(String[] args) {
-        //TODO: Parse args and build task from them
-        if(args.length == 6) {
-            return new EvaluationTask(args[0], args[1], args[2], Boolean.parseBoolean(args[3]), Integer.parseInt(args[4]), args[5]);
-        } 
-        return new EvaluationTask();
-    }
-    
-    
-    public BotNavigationParameters getBotNavigationParams() {
-        return new BotNavigationParameters().setNavigation(navigation).setPathPlanner(pathPlanner).setOnlyRelevantPaths(onlyRelevantPaths).setLimit(limit).setResultPath(resultPath);
+        this.resultUnique = resultUnique;
     }
 
+    public EvaluationTask(String navigation, String pathPlanner, String mapName, boolean onlyRelevantPaths, String resultPath) {
+        this(navigation, pathPlanner, mapName, onlyRelevantPaths, 30, resultPath, false);
+    }
+
+    public EvaluationTask() {
+        this("navigation", "fwMap", "DM-TrainingDay", true, 10, "C:\\Temp\\Pogamut\\stats\\", false);
+    }
+
+    /**
+     * Creates task from command line arguments.
+     *
+     * @param args Command line arguments.
+     * @return Task built from command line arguments.
+     */
+    public static EvaluationTask buildFromArgs(String[] args) {
+        //TODO: Check validity of args?
+        if (args.length == 7) {
+            return new EvaluationTask(args[0], args[1], args[2], Boolean.parseBoolean(args[3]), Integer.parseInt(args[4]), args[5], Boolean.parseBoolean(args[6]));
+        }
+        return new EvaluationTask();
+    }
+
+    /**
+     * Creates {@link BotNavigationParameters} from this task.
+     *
+     * @return {@link BotNavigationParameters}'s representation of this task.
+     */
+    public BotNavigationParameters getBotNavigationParams() {
+        return new BotNavigationParameters().setNavigation(navigation).setPathPlanner(pathPlanner).setOnlyRelevantPaths(onlyRelevantPaths).setLimit(limit).setResultPath(resultPath).setResultUnique(resultUnique);
+    }
+
+    /**
+     * Map for evaluation.
+     *
+     * @return
+     */
     public String getMapName() {
         return mapName;
     }
 
+    /**
+     * Whether to evaluate only relevant paths.
+     *
+     * @return
+     */
     public boolean isOnlyRelevantPaths() {
         return onlyRelevantPaths;
     }
 
+    /**
+     * Push task as command line arguments.
+     *
+     * @param command Arguments list to fill.
+     */
     public void toArgs(List<String> command) {
         command.add(navigation);
         command.add(pathPlanner);
@@ -84,7 +106,6 @@ public class EvaluationTask {
         command.add(Boolean.toString(onlyRelevantPaths));
         command.add(Integer.toString(limit));
         command.add(resultPath);
+        command.add(Boolean.toString(resultUnique));
     }
-    
-    
 }

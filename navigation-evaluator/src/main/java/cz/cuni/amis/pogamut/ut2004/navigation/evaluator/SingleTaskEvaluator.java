@@ -13,6 +13,7 @@ import cz.cuni.amis.utils.exception.PogamutException;
 import java.util.logging.Level;
 
 /**
+ * Evaluator of single {@link EvaluationTask}. Starts its own UCC server and runs single {@link NavigationEvaluatingBot} on it.
  *
  * @author Bogo
  */
@@ -20,7 +21,20 @@ public class SingleTaskEvaluator {
 
     public static void main(String args[]) {
         EvaluationTask task = EvaluationTask.buildFromArgs(args);
+        SingleTaskEvaluator evaluator = new SingleTaskEvaluator();
+        int result = evaluator.execute(task);
+        System.exit(result);
 
+    }
+    
+    public SingleTaskEvaluator() {}
+
+    /**
+     * Executes given {@link EvaluationTask}.
+     * @param task Task to execute.
+     * @return Execution result.
+     */
+    public int execute(EvaluationTask task) {
         int status = 0;
         UCCWrapper server = null;
         UT2004Bot bot = null;
@@ -37,7 +51,7 @@ public class SingleTaskEvaluator {
             status = -1;
         } catch (PogamutException pex) {
             //Bot execution failed!
-            status = -2;
+            status = 0;
         } finally {
             if (bot != null && bot.notInState(IAgentStateDown.class)) {
                 bot.stop();
@@ -48,10 +62,16 @@ public class SingleTaskEvaluator {
             if (server != null) {
                 server.stop();
             }
-            System.exit(status);
+            return status;
         }
     }
 
+    /**
+     * Starts UCC server.
+     * 
+     * @param mapName Map which start on server.
+     * @return Server wrapper.
+     */
     public static UCCWrapper run(String mapName) {
         UCCWrapperConf conf = new UCCWrapperConf();
         conf.setUnrealHome("C:\\Games\\UT");

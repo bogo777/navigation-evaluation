@@ -22,9 +22,13 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashSet;
 
 /**
+ * Result of evaluation of corresponding task.
  *
  * @author Bogo
  */
@@ -38,8 +42,8 @@ public class EvaluationResult {
     private int failedCount = 0;
     private int notBuiltCount = 0;
     private int proccessedCount = 0;
-    
     private String resultPath;
+    
 
     public EvaluationResult(int total, String map, LogCategory log, String resultPath) {
         totalPaths = total;
@@ -49,6 +53,13 @@ public class EvaluationResult {
         pathResults = new HashSet<PathResult>(totalPaths);
     }
 
+    /**
+     * Adds result for single path.
+     *
+     * @param path Added path.
+     * @param type Result of evaluation.
+     * @param duration Duration of navigation.
+     */
     public void addResult(Path path, PathResult.ResultType type, long duration) {
         ++proccessedCount;
         switch (type) {
@@ -65,13 +76,24 @@ public class EvaluationResult {
         pathResults.add(new PathResult(path, type, duration));
     }
 
-    public void exportAggregate() {
+    /**
+     * Exports aggregate statistics about evaluation. TODO: Create unique files
+     * on request?
+     */
+    public void exportAggregate(boolean uniqueFile) {
         FileWriter fstream = null;
         try {
-            String fileName = resultPath + mapName + ".aggregate.csv";
-            File file = new File(fileName);
-            file.createNewFile();
-            fstream = new FileWriter(file);
+            String fileName = mapName + ".aggregate.csv";
+            if(uniqueFile) {
+                File file = new File(resultPath + fileName);
+                while(file.exists()) {
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("ddMMyy_HHmmss");
+                    fileName = String.format("%s_%s.aggregate.csv", mapName, dateFormat.format(new Date()));
+                    file = new File(fileName);
+                }
+            }
+            String fullFilePath = resultPath + fileName;
+            fstream = new FileWriter(fullFilePath);
             BufferedWriter out = new BufferedWriter(fstream);
             out.write("Map;Total;Processes;Completed;Failed;NotBuilt");
             out.newLine();
@@ -89,12 +111,29 @@ public class EvaluationResult {
         }
 
     }
+    
+    public void exportAggregate() {
+        exportAggregate(false);
+    }
 
-    public void export() {
+    /**
+     * Export complete statistics about evaluation. TODO: Create unique files on
+     * request?
+     */
+    public void export(boolean uniqueFile) {
         FileWriter fstream = null;
         try {
-            String fileName = resultPath + mapName + ".csv";
-            fstream = new FileWriter(fileName);
+            String fileName = mapName + ".csv";
+            if(uniqueFile) {
+                File file = new File(resultPath + fileName);
+                while(file.exists()) {
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("ddMMyy_HHmmss");
+                    fileName = String.format("%s_%s.csv", mapName, dateFormat.format(new Date()));
+                    file = new File(fileName);
+                }
+            }
+            String fullFilePath = resultPath + fileName;
+            fstream = new FileWriter(fullFilePath);
             BufferedWriter out = new BufferedWriter(fstream);
             out.write("ID;From;To;Type;Duration");
             out.newLine();
@@ -114,5 +153,9 @@ public class EvaluationResult {
                 log.warning(ex.getMessage());
             }
         }
+    }
+    
+    public void export() {
+        export(false);
     }
 }

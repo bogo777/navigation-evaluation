@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Date;
 
 /**
+ * Handle for {@link SingleTaskEvaluator}. Runs {@link SingleTaskEvaluator} in new JVM.
  *
  * @author Bogo
  */
@@ -35,6 +36,11 @@ public class EvaluatorHandle {
         status = Status.NEW;
     }
     
+    /**
+     * Creates new JVM and starts {@link SingleTaskEvaluator} in it.
+     * @param task
+     * @return 
+     */
     public boolean createEvaluator(EvaluationTask task) {
         if(status != Status.NEW) {
             return false;
@@ -91,7 +97,9 @@ public class EvaluatorHandle {
         return status;
     }
     
-    
+    /**
+     * Status of handle.
+     */
     public enum Status {
         NEW, CREATED, RUNNING, NOT_RESPONDING, FAILED, DESTROYED, COMPLETED
     }

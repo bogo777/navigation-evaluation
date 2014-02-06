@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
+ * Container for path evaluation. Provides paths which should be evaluated.
  *
  * @author Bogo
  */
@@ -34,6 +35,11 @@ public class PathContainer {
     IVisionWorldView world;
     private HashMap<WorldObjectId, Set<WorldObjectId>> paths;
 
+    /**
+     * Create container for given worldview.
+     * @param world 
+     * 
+     */
     public PathContainer(IVisionWorldView world) {
         this.world = world;
         paths = new HashMap<WorldObjectId, Set<WorldObjectId>>();
@@ -106,8 +112,10 @@ public class PathContainer {
      * Build set of all relevant paths for given map. Relevant paths are paths
      * between {@link NavPoint}s which are either inventory spots or player
      * starts.
+     *
+     * @param limit Max number of paths built. If limit < 0 build all paths.
      */
-    public void buildRelevant() {
+    public void buildRelevant(int limit) {
         paths.clear();
         Map<WorldObjectId, NavPoint> navPoints = world.getAll(NavPoint.class);
         HashSet<WorldObjectId> relevantNavPoints = new HashSet<WorldObjectId>();
@@ -116,12 +124,53 @@ public class PathContainer {
                 relevantNavPoints.add(navPoint.getId());
             }
         }
-        HashSet<WorldObjectId> relevantEnds = new HashSet<WorldObjectId>(relevantNavPoints);
-        for (WorldObjectId navPointId : relevantNavPoints) {
-            HashSet<WorldObjectId> ends = new HashSet<WorldObjectId>(relevantEnds);
-            ends.remove(navPointId);
-            paths.put(navPointId, ends);
+        int pathCount = relevantNavPoints.size() * (relevantNavPoints.size() - 1);
+        boolean buildIncrementaly = limit < pathCount / 5;
+
+        if (limit < 0 || !buildIncrementaly) {
+            HashSet<WorldObjectId> relevantEnds = new HashSet<WorldObjectId>(relevantNavPoints);
+            for (WorldObjectId navPointId : relevantNavPoints) {
+                HashSet<WorldObjectId> ends = new HashSet<WorldObjectId>(relevantEnds);
+                ends.remove(navPointId);
+                paths.put(navPointId, ends);
+            }
         }
+        if (limit > 0) {
+            if (!buildIncrementaly) {
+                while (pathCount > limit) {
+                    getPath();
+                    --pathCount;
+                }
+            } else {
+                pathCount = 0;
+                while (pathCount < limit) {
+                    WorldObjectId start = MyCollections.getRandom(relevantNavPoints);
+                    WorldObjectId end = MyCollections.getRandom(relevantNavPoints);
+                    if (start.equals(end)) {
+                        //Path which ends where it starts is not valid!
+                        continue;
+                    }
+                    Set<WorldObjectId> pathsFromStart = paths.get(start);
+                    if (pathsFromStart == null) {
+                        pathsFromStart = new HashSet<WorldObjectId>();
+                        paths.put(start, pathsFromStart);
+                    }
+                    if (pathsFromStart.add(end)) {
+                        ++pathCount;
+                    }
+                }
+            }
+        }
+
+    }
+
+    /**
+     * Build set of all relevant paths for given map. Relevant paths are paths
+     * between {@link NavPoint}s which are either inventory spots or player
+     * starts.
+     */
+    public void buildRelevant() {
+        buildRelevant(-1);
     }
 
     /**
@@ -132,13 +181,17 @@ public class PathContainer {
     protected boolean isEmpty() {
         return paths.isEmpty();
     }
-    
+
+    /**
+     * Returns size of the container.
+     * @return Number of paths in the container.
+     */
     protected int size() {
-        if(isEmpty()) {
+        if (isEmpty()) {
             return 0;
         } else {
             int size = 0;
-            for(Set<WorldObjectId> set : paths.values()) {
+            for (Set<WorldObjectId> set : paths.values()) {
                 size += set.size();
             }
             return size;

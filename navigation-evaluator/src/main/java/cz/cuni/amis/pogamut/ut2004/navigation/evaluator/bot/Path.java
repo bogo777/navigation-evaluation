@@ -19,6 +19,7 @@ package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPoint;
 
 /**
+ * Represents path for evaluation. Contains start and end point.
  *
  * @author Bogo
  */
@@ -27,6 +28,12 @@ public class Path {
     private NavPoint start;
     private NavPoint end;
     
+    /**
+     * Creates path with given start and end point.
+     * @param start Start point of path.
+     * @param end End point of path.
+     * 
+     */
     public Path(NavPoint start, NavPoint end) {
         this.start = start;
         this.end = end;
@@ -40,6 +47,11 @@ public class Path {
         return end;
     }
 
+    /**
+     * Get ID of the path. ID is in format [ID of start]-[ID of end].
+     * @return ID of this path.
+     * 
+     */
     public String getId() {
         return String.format("%s-%s", start.getId().toString(), end.getId().toString());
     }
