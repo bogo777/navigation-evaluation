@@ -53,7 +53,7 @@ public class Path {
      * 
      */
     public String getId() {
-        return String.format("%s-%s", start.getId().toString(), end.getId().toString());
+        return String.format("[%s]-[%s]", start.getId().getStringId(), end.getId().getStringId());
     }
     
 }

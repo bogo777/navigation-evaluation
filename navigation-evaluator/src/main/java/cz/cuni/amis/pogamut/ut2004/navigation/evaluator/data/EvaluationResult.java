@@ -16,16 +16,20 @@
  */
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data;
 
+import cz.cuni.amis.pogamut.base.communication.command.IAct;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.Path;
 import cz.cuni.amis.pogamut.base.utils.logging.LogCategory;
+import cz.cuni.amis.pogamut.ut2004.communication.messages.gbcommands.Record;
+import cz.cuni.amis.pogamut.ut2004.communication.messages.gbcommands.StopRecord;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Result of evaluation of corresponding task.
@@ -43,7 +47,6 @@ public class EvaluationResult {
     private int notBuiltCount = 0;
     private int proccessedCount = 0;
     private String resultPath;
-    
 
     public EvaluationResult(int total, String map, LogCategory log, String resultPath) {
         totalPaths = total;
@@ -83,17 +86,8 @@ public class EvaluationResult {
     public void exportAggregate(boolean uniqueFile) {
         FileWriter fstream = null;
         try {
-            String fileName = mapName + ".aggregate.csv";
-            if(uniqueFile) {
-                File file = new File(resultPath + fileName);
-                while(file.exists()) {
-                    SimpleDateFormat dateFormat = new SimpleDateFormat("ddMMyy_HHmmss");
-                    fileName = String.format("%s_%s.aggregate.csv", mapName, dateFormat.format(new Date()));
-                    file = new File(fileName);
-                }
-            }
-            String fullFilePath = resultPath + fileName;
-            fstream = new FileWriter(fullFilePath);
+            File resultFile = getResultFile(uniqueFile, "aggregate.csv");
+            fstream = new FileWriter(resultFile);
             BufferedWriter out = new BufferedWriter(fstream);
             out.write("Map;Total;Processes;Completed;Failed;NotBuilt");
             out.newLine();
@@ -104,36 +98,29 @@ public class EvaluationResult {
             log.warning(ex.getMessage());
         } finally {
             try {
-                fstream.close();
+                if (fstream != null) {
+                    fstream.close();
+                }
             } catch (IOException ex) {
                 log.warning(ex.getMessage());
             }
         }
 
     }
-    
+
     public void exportAggregate() {
         exportAggregate(false);
     }
 
     /**
-     * Export complete statistics about evaluation. TODO: Create unique files on
-     * request?
+     * Export complete statistics about evaluation.
      */
     public void export(boolean uniqueFile) {
         FileWriter fstream = null;
         try {
-            String fileName = mapName + ".csv";
-            if(uniqueFile) {
-                File file = new File(resultPath + fileName);
-                while(file.exists()) {
-                    SimpleDateFormat dateFormat = new SimpleDateFormat("ddMMyy_HHmmss");
-                    fileName = String.format("%s_%s.csv", mapName, dateFormat.format(new Date()));
-                    file = new File(fileName);
-                }
-            }
-            String fullFilePath = resultPath + fileName;
-            fstream = new FileWriter(fullFilePath);
+            File resultFile = getResultFile(uniqueFile, "csv");
+            resultFile.getParentFile().mkdirs();
+            fstream = new FileWriter(resultFile);
             BufferedWriter out = new BufferedWriter(fstream);
             out.write("ID;From;To;Type;Duration");
             out.newLine();
@@ -154,8 +141,81 @@ public class EvaluationResult {
             }
         }
     }
-    
+
     public void export() {
         export(false);
+    }
+
+    private File getResultFile(boolean unique, String fileNameSuffix) {
+        String fileName = "data." + fileNameSuffix;
+        String fullFilePath = resultPath + fileName;
+        File resultFile = new File(fullFilePath);
+        return resultFile;
+    }
+
+    public void startRecording(IAct act) {
+        act.act(new Record(getRecordName()));
+    }
+
+    public void startRecording(IAct act, Path path) {
+        act.act(new Record(getRecordName(path)));
+    }
+
+    public void stopRecording(IAct act, Path path, boolean delete) {
+        act.act(new StopRecord());
+        try {
+            //give server some time to stop recording and close file...
+            Thread.sleep(100);
+        } catch (InterruptedException ex) {
+            //TODO: log?
+        }
+        //Move record file to result directory
+        String recordFileName = getRecordName(path) + ".demo4";
+        File recordFile = new File("C:/Games/UT/Demos", recordFileName);
+        if (delete) {
+            recordFile.delete();
+        } else {
+            recordFile.renameTo(new File(resultPath, recordFileName));
+        }
+    }
+
+    public void stopRecording(IAct act, boolean delete) {
+        act.act(new StopRecord());
+        try {
+            //give server some time to stop recording and close file...
+            Thread.sleep(500);
+        } catch (InterruptedException ex) {
+            //TODO: log?
+        }
+        //Move record file to result directory
+        String recordFileName = getRecordName() + ".demo4";
+        File recordFile = new File("C:/Games/UT/Demos", recordFileName);
+        if (delete) {
+            recordFile.delete();
+        } else {
+            recordFile.renameTo(new File(resultPath, recordFileName));
+        }
+    }
+
+    private String getRecordName() {
+        int last = resultPath.length();
+        for (int i = 0; i < 4; i++) {
+            last = resultPath.lastIndexOf('/', last - 1);
+        }
+        String relevantPath = resultPath.substring(last + 1);
+        String name = relevantPath.replace("/", "_");
+        return name + "record";
+    }
+
+    public String getLogFile() {
+        return resultPath + "log.log";
+    }
+
+    private String getRecordName(Path path) {
+        return getRecordName() + path.getId().replace('.', '_');
+    }
+
+    public boolean hasFailedResult() {
+        return failedCount > 0;
     }
 }

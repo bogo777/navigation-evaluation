@@ -24,18 +24,19 @@ import java.util.List;
  *
  * @author Bogo
  */
-public class EvaluationTask {
-
+public class EvaluationTask implements IEvaluationTask {
+    
     private String navigation;
     private String pathPlanner;
     private String mapName;
     private boolean onlyRelevantPaths;
     private String resultPath;
     private boolean resultUnique;
+    private RecordType recordType;
     //Max number of paths to explore
     private int limit;
-
-    public EvaluationTask(String navigation, String pathPlanner, String mapName, boolean onlyRelevantPaths, int limit, String resultPath, boolean resultUnique) {
+    
+    public EvaluationTask(String navigation, String pathPlanner, String mapName, boolean onlyRelevantPaths, int limit, String resultPath, boolean resultUnique, RecordType recordType) {
         this.navigation = navigation;
         this.pathPlanner = pathPlanner;
         this.mapName = mapName;
@@ -43,14 +44,16 @@ public class EvaluationTask {
         this.limit = limit;
         this.resultPath = resultPath;
         this.resultUnique = resultUnique;
+        this.recordType = recordType;
     }
-
+    
     public EvaluationTask(String navigation, String pathPlanner, String mapName, boolean onlyRelevantPaths, String resultPath) {
-        this(navigation, pathPlanner, mapName, onlyRelevantPaths, 30, resultPath, false);
+        this(navigation, pathPlanner, mapName, onlyRelevantPaths, 30, resultPath, false, RecordType.FULL);
     }
 
+    //TODO: Remove
     public EvaluationTask() {
-        this("navigation", "fwMap", "DM-TrainingDay", true, 10, "C:\\Temp\\Pogamut\\stats\\", false);
+        this("navigation", "fwMap", "DM-TrainingDay", true, 10, "C:/Temp/Pogamut/stats/", false, RecordType.FULL);
     }
 
     /**
@@ -61,8 +64,8 @@ public class EvaluationTask {
      */
     public static EvaluationTask buildFromArgs(String[] args) {
         //TODO: Check validity of args?
-        if (args.length == 7) {
-            return new EvaluationTask(args[0], args[1], args[2], Boolean.parseBoolean(args[3]), Integer.parseInt(args[4]), args[5], Boolean.parseBoolean(args[6]));
+        if (args.length == 8) {
+            return new EvaluationTask(args[0], args[1], args[2], Boolean.parseBoolean(args[3]), Integer.parseInt(args[4]), args[5], Boolean.parseBoolean(args[6]), RecordType.valueOf(args[7]));
         }
         return new EvaluationTask();
     }
@@ -73,7 +76,7 @@ public class EvaluationTask {
      * @return {@link BotNavigationParameters}'s representation of this task.
      */
     public BotNavigationParameters getBotNavigationParams() {
-        return new BotNavigationParameters().setNavigation(navigation).setPathPlanner(pathPlanner).setOnlyRelevantPaths(onlyRelevantPaths).setLimit(limit).setResultPath(resultPath).setResultUnique(resultUnique);
+        return new BotNavigationParameters(this);
     }
 
     /**
@@ -84,6 +87,10 @@ public class EvaluationTask {
     public String getMapName() {
         return mapName;
     }
+    
+    public void setMapName(String mapName) {
+        this.mapName = mapName;
+    }
 
     /**
      * Whether to evaluate only relevant paths.
@@ -92,6 +99,54 @@ public class EvaluationTask {
      */
     public boolean isOnlyRelevantPaths() {
         return onlyRelevantPaths;
+    }
+    
+    public String getNavigation() {
+        return navigation;
+    }
+    
+    public String getPathPlanner() {
+        return pathPlanner;
+    }
+    
+    public String getResultPath() {
+        return resultPath;
+    }
+    
+    public boolean isResultUnique() {
+        return resultUnique;
+    }
+    
+    public int getLimit() {
+        return limit;
+    }
+    
+    public void setNavigation(String navigation) {
+        this.navigation = navigation;
+    }
+    
+    public void setPathPlanner(String pathPlanner) {
+        this.pathPlanner = pathPlanner;
+    }
+    
+    public void setOnlyRelevantPaths(boolean onlyRelevantPaths) {
+        this.onlyRelevantPaths = onlyRelevantPaths;
+    }
+    
+    public void setResultPath(String resultPath) {
+        this.resultPath = resultPath;
+    }
+    
+    public void setResultUnique(boolean resultUnique) {
+        this.resultUnique = resultUnique;
+    }
+    
+    public void setLimit(int limit) {
+        this.limit = limit;
+    }
+    
+    public RecordType getRecordType() {
+        return recordType;
     }
 
     /**
@@ -107,5 +162,6 @@ public class EvaluationTask {
         command.add(Integer.toString(limit));
         command.add(resultPath);
         command.add(Boolean.toString(resultUnique));
+        command.add(recordType.name());
     }
 }

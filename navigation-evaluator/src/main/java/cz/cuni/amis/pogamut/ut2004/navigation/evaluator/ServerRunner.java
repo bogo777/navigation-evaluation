@@ -16,7 +16,9 @@
  */
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator;
 
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.EvaluationRepeatTask;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.EvaluationTask;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.RecordType;
 import cz.cuni.amis.utils.exception.PogamutException;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -44,12 +46,16 @@ public class ServerRunner {
         ArrayList<EvaluationTask> myTasks = new ArrayList<EvaluationTask>();
 
         //DM-TrainingDay task
-//        EvaluationTask taskDMTrainingDay = new EvaluationTask();
-//        myTasks.add(taskDMTrainingDay);
+        EvaluationTask taskDMTrainingDay = new EvaluationTask("navigation", "fwMap", "DM-TrainingDay", true, 10, "C:/Temp/Pogamut/stats", true, RecordType.PATH);
+        myTasks.add(taskDMTrainingDay);
+
+//        //DM-Crash task
+//        EvaluationTask taskDMCrash = new EvaluationTask("navigation", "fwMap", "DM-1on1-Crash", true, 10, "C:/Temp/Pogamut/stats/", true, RecordType.FULL);
+//        myTasks.add(taskDMCrash);
 
         //DM-Crash task
-        EvaluationTask taskDMCrash = new EvaluationTask("navigation", "fwMap", "DM-1on1-Crash", true, 10, "C:\\Temp\\Pogamut\\stats\\", true);
-        myTasks.add(taskDMCrash);
+//        EvaluationTask taskRepeat = new EvaluationRepeatTask("C:/Temp/Pogamut/stats/navigation_fwMap/DM-1on1-Crash_130114_113337.csv", "navigation", "fwMap", "C:/Temp/Pogamut/stats/", RecordType.FULL);
+//        myTasks.add(taskRepeat);
 
         return myTasks;
     }
@@ -64,7 +70,7 @@ public class ServerRunner {
             directRunner.run();
         }
 
-
+        System.exit(0);
     }
 
     private void run() {

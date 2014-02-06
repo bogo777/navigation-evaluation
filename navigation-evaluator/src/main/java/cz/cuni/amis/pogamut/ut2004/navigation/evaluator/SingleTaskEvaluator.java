@@ -13,7 +13,8 @@ import cz.cuni.amis.utils.exception.PogamutException;
 import java.util.logging.Level;
 
 /**
- * Evaluator of single {@link EvaluationTask}. Starts its own UCC server and runs single {@link NavigationEvaluatingBot} on it.
+ * Evaluator of single {@link EvaluationTask}. Starts its own UCC server and
+ * runs single {@link NavigationEvaluatingBot} on it.
  *
  * @author Bogo
  */
@@ -26,11 +27,13 @@ public class SingleTaskEvaluator {
         System.exit(result);
 
     }
-    
-    public SingleTaskEvaluator() {}
+
+    public SingleTaskEvaluator() {
+    }
 
     /**
      * Executes given {@link EvaluationTask}.
+     *
      * @param task Task to execute.
      * @return Execution result.
      */
@@ -42,7 +45,7 @@ public class SingleTaskEvaluator {
         try {
             server = run(task.getMapName());
             UT2004BotRunner<UT2004Bot, BotNavigationParameters> botRunner = new UT2004BotRunner<UT2004Bot, BotNavigationParameters>(NavigationEvaluatingBot.class, "NavigationEvaluatingBot", server.getHost(), server.getBotPort());
-            botRunner.setLogLevel(Level.FINE).setMain(true);
+            botRunner.setLogLevel(Level.FINE);
             bot = botRunner.startAgents(task.getBotNavigationParams()).get(0);
             bot.awaitState(IAgentStateDown.class, stopTimeout);
 
@@ -51,7 +54,11 @@ public class SingleTaskEvaluator {
             status = -1;
         } catch (PogamutException pex) {
             //Bot execution failed!
-            status = 0;
+            if (bot != null && ((NavigationEvaluatingBot) bot.getController()).getResult()) {
+                status = 0;
+            } else {
+                status = -2;
+            }
         } finally {
             if (bot != null && bot.notInState(IAgentStateDown.class)) {
                 bot.stop();
@@ -68,13 +75,13 @@ public class SingleTaskEvaluator {
 
     /**
      * Starts UCC server.
-     * 
+     *
      * @param mapName Map which start on server.
      * @return Server wrapper.
      */
     public static UCCWrapper run(String mapName) {
         UCCWrapperConf conf = new UCCWrapperConf();
-        conf.setUnrealHome("C:\\Games\\UT");
+        conf.setUnrealHome("C:/Games/UT");
         conf.setStartOnUnusedPort(true);
         conf.setGameType("BotDeathMatch");
         conf.setMapName(mapName);

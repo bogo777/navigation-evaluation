@@ -20,10 +20,17 @@ import cz.cuni.amis.pogamut.base.communication.worldview.object.WorldObjectId;
 import cz.cuni.amis.pogamut.base3d.worldview.IVisionWorldView;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPoint;
 import cz.cuni.amis.utils.collections.MyCollections;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Container for path evaluation. Provides paths which should be evaluated.
@@ -37,8 +44,9 @@ public class PathContainer {
 
     /**
      * Create container for given worldview.
-     * @param world 
-     * 
+     *
+     * @param world
+     *
      */
     public PathContainer(IVisionWorldView world) {
         this.world = world;
@@ -98,14 +106,7 @@ public class PathContainer {
      * Builds set of paths between all {@link NavPoint}s of given map.
      */
     public void build() {
-        paths.clear();
-        Map<WorldObjectId, NavPoint> navPoints = world.getAll(NavPoint.class);
-        Set<WorldObjectId> navPointsIds = new HashSet<WorldObjectId>(navPoints.keySet());
-        for (WorldObjectId navPointId : navPoints.keySet()) {
-            HashSet<WorldObjectId> ends = new HashSet<WorldObjectId>(navPointsIds);
-            ends.remove(navPointId);
-            paths.put(navPointId, ends);
-        }
+        build(-1);
     }
 
     /**
@@ -116,7 +117,6 @@ public class PathContainer {
      * @param limit Max number of paths built. If limit < 0 build all paths.
      */
     public void buildRelevant(int limit) {
-        paths.clear();
         Map<WorldObjectId, NavPoint> navPoints = world.getAll(NavPoint.class);
         HashSet<WorldObjectId> relevantNavPoints = new HashSet<WorldObjectId>();
         for (NavPoint navPoint : navPoints.values()) {
@@ -124,44 +124,7 @@ public class PathContainer {
                 relevantNavPoints.add(navPoint.getId());
             }
         }
-        int pathCount = relevantNavPoints.size() * (relevantNavPoints.size() - 1);
-        boolean buildIncrementaly = limit < pathCount / 5;
-
-        if (limit < 0 || !buildIncrementaly) {
-            HashSet<WorldObjectId> relevantEnds = new HashSet<WorldObjectId>(relevantNavPoints);
-            for (WorldObjectId navPointId : relevantNavPoints) {
-                HashSet<WorldObjectId> ends = new HashSet<WorldObjectId>(relevantEnds);
-                ends.remove(navPointId);
-                paths.put(navPointId, ends);
-            }
-        }
-        if (limit > 0) {
-            if (!buildIncrementaly) {
-                while (pathCount > limit) {
-                    getPath();
-                    --pathCount;
-                }
-            } else {
-                pathCount = 0;
-                while (pathCount < limit) {
-                    WorldObjectId start = MyCollections.getRandom(relevantNavPoints);
-                    WorldObjectId end = MyCollections.getRandom(relevantNavPoints);
-                    if (start.equals(end)) {
-                        //Path which ends where it starts is not valid!
-                        continue;
-                    }
-                    Set<WorldObjectId> pathsFromStart = paths.get(start);
-                    if (pathsFromStart == null) {
-                        pathsFromStart = new HashSet<WorldObjectId>();
-                        paths.put(start, pathsFromStart);
-                    }
-                    if (pathsFromStart.add(end)) {
-                        ++pathCount;
-                    }
-                }
-            }
-        }
-
+        buildPaths(relevantNavPoints, limit);
     }
 
     /**
@@ -184,6 +147,7 @@ public class PathContainer {
 
     /**
      * Returns size of the container.
+     *
      * @return Number of paths in the container.
      */
     protected int size() {
@@ -196,5 +160,88 @@ public class PathContainer {
             }
             return size;
         }
+    }
+
+    void build(int limit) {
+        Map<WorldObjectId, NavPoint> navPoints = world.getAll(NavPoint.class);
+        Set<WorldObjectId> navPointsIds = new HashSet<WorldObjectId>(navPoints.keySet());
+        buildPaths(navPointsIds, limit);
+    }
+
+    private void buildPaths(Set<WorldObjectId> navPoints, int limit) {
+        paths.clear();
+        int pathCount = navPoints.size() * (navPoints.size() - 1);
+        boolean buildIncrementaly = limit < pathCount / 5;
+
+        if (limit < 0 || !buildIncrementaly) {
+            HashSet<WorldObjectId> relevantEnds = new HashSet<WorldObjectId>(navPoints);
+            for (WorldObjectId navPointId : navPoints) {
+                HashSet<WorldObjectId> ends = new HashSet<WorldObjectId>(relevantEnds);
+                ends.remove(navPointId);
+                paths.put(navPointId, ends);
+            }
+        }
+        if (limit > 0) {
+            if (!buildIncrementaly) {
+                while (pathCount > limit) {
+                    getPath();
+                    --pathCount;
+                }
+            } else {
+                pathCount = 0;
+                while (pathCount < limit) {
+                    WorldObjectId start = MyCollections.getRandom(navPoints);
+                    WorldObjectId end = MyCollections.getRandom(navPoints);
+                    if (start.equals(end)) {
+                        //Path which ends where it starts is not valid!
+                        continue;
+                    }
+                    pathCount += addPath(start, end);
+                }
+            }
+        }
+    }
+
+    void buildFromFile(String repeatFilePath) {
+        paths.clear();
+        BufferedReader reader = null;
+        try {
+            File repeatFile = new File(repeatFilePath);
+            reader = new BufferedReader(new FileReader(repeatFile));
+            String line = reader.readLine();
+            //Skip first line - contains column descriptors
+            line = reader.readLine();
+            while (line != null) {
+                String[] splitLine = line.split(";");
+                WorldObjectId startId = WorldObjectId.get(splitLine[1]);
+                WorldObjectId endId = WorldObjectId.get(splitLine[2]);
+                addPath(startId, endId);
+                line = reader.readLine();
+            }
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(PathContainer.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(PathContainer.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                if (reader != null) {
+                    reader.close();
+                }
+            } catch (IOException ex) {
+                Logger.getLogger(PathContainer.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+
+    private int addPath(WorldObjectId start, WorldObjectId end) {
+        Set<WorldObjectId> pathsFromStart = paths.get(start);
+        if (pathsFromStart == null) {
+            pathsFromStart = new HashSet<WorldObjectId>();
+            paths.put(start, pathsFromStart);
+        }
+        if (pathsFromStart.add(end)) {
+            return 1;
+        }
+        return 0;
     }
 }

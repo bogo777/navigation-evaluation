@@ -46,12 +46,16 @@ import cz.cuni.amis.pogamut.ut2004.utils.UT2004BotRunner;
 import cz.cuni.amis.utils.collections.MyCollections;
 import cz.cuni.amis.utils.exception.PogamutException;
 import cz.cuni.amis.utils.flag.FlagListener;
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.FileHandler;
 import java.util.logging.Level;
+import java.util.logging.SimpleFormatter;
 
 /**
- * Bot for evaluating navigations. Initialized with navigation given by parameters and performs evaluation on given map.
+ * Bot for evaluating navigations. Initialized with navigation given by
+ * parameters and performs evaluation on given map.
  *
  * @author Bogo
  */
@@ -68,10 +72,11 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
     private NavigationState state;
     private Date startDate;
     private EvaluationResult result;
+    private FileHandler fh;
     //TODO: Move
     int total = 0;
     int processed = 0;
-
+    private boolean isCompleted;
 
     public NavigationEvaluatingBot() {
     }
@@ -124,10 +129,25 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
         tabooNavPoints = new TabooSet<NavPoint>(bot);
 
         pathContainer = new PathContainer(world);
-        pathContainer.buildRelevant(getParams().getLimit());
+        NavigationFactory.initializePathContainer(pathContainer, this);
 
         total = pathContainer.size();
         result = new EvaluationResult(total, info.game.getMapName(), log, getParams().getResultPath());
+
+
+        try {
+
+            // This block configure the logger with handler and formatter  
+            fh = new FileHandler(result.getLogFile());
+            log.addHandler(fh);
+            SimpleFormatter formatter = new SimpleFormatter();
+            fh.setFormatter(formatter);
+
+        } catch (SecurityException e) {
+            //TODO: Handle
+        } catch (IOException e) {
+            //TODO: Handle
+        }
 
         state = NavigationState.NotMoving;
 
@@ -167,6 +187,9 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
      */
     @Override
     public void beforeFirstLogic() {
+        if (getParams().isFullRecord()) {
+            result.startRecording(act);
+        }
     }
 
     /**
@@ -224,6 +247,9 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
             //Write result and find new path -> through NotMoving
             log.info("Successfuly reached end. Hooray!");
             ++processed;
+            if (getParams().isPathRecord()) {
+                result.stopRecording(act, currentPath, getParams().keepOnlyFailedRecords());
+            }
             result.addResult(currentPath, PathResult.ResultType.Completed, (new Date()).getTime() - startDate.getTime());
             log.info(String.format("Completed %d/%d paths...", processed, total));
             currentPath = getNextPath(currentPath.getEnd());
@@ -233,6 +259,9 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
         if (state == NavigationState.Failed) {
             //Write failed report and find new path -> through NotMoving
             log.info("Navigation failed!");
+            if (getParams().isPathRecord()) {
+                result.stopRecording(act, currentPath, false);
+            }
             result.addResult(currentPath, PathResult.ResultType.Failed, startDate == null ? 0 : (new Date()).getTime() - startDate.getTime());
             currentPath = getNextPath(info.getNearestNavPoint());
             state = NavigationState.NotMoving;
@@ -255,6 +284,9 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
                 path = pathPlanner.computePath(currentPath.getStart(), currentPath.getEnd());
             }
             log.info("Starting navigation on the path.");
+            if (getParams().isPathRecord()) {
+                result.startRecording(act, currentPath);
+            }
             startDate = new Date();
             navigation.navigate(path);
             state = NavigationState.Navigating;
@@ -381,7 +413,7 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
         if (path == null) {
             path = pathContainer.getPath();
         }
-        if (path == null || processed >= getParams().getLimit()) {
+        if (path == null || processed >= getParams().getLimitForCompare()) {
             wrapUpEvaluation();
         }
         return path;
@@ -389,8 +421,24 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
 
     private void wrapUpEvaluation() {
         log.info("No more paths to navigate, we are finished...");
+        if (getParams().isFullRecord()) {
+            result.stopRecording(act, getParams().keepOnlyFailedRecords() && !result.hasFailedResult());
+        }
         result.exportAggregate(getParams().getResultUnique());
         result.export(getParams().getResultUnique());
-        bot.stop();
+        isCompleted = true;
+
+        log.removeHandler(fh);
+        fh.close();
+
+        new Runnable() {
+            public void run() {
+                bot.stop();
+            }
+        }.run();
+    }
+
+    public boolean getResult() {
+        return isCompleted;
     }
 }
