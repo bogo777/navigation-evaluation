@@ -17,12 +17,9 @@
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot;
 
 import cz.cuni.amis.pogamut.ut2004.bot.params.UT2004BotParameters;
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.EvaluationRepeatTask;
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.IEvaluationTask;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.NavigationEvaluationRepeatTask;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.INavigationEvaluationTask;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.RecordType;
-import java.io.File;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 /**
  * Navigation parameters for creating custom navigation in
@@ -32,9 +29,9 @@ import java.util.Date;
  */
 public class BotNavigationParameters extends UT2004BotParameters {
 
-    private IEvaluationTask task;
+    private INavigationEvaluationTask task;
 
-    public BotNavigationParameters(IEvaluationTask task) {
+    public BotNavigationParameters(INavigationEvaluationTask task) {
         this.task = task;
     }
 
@@ -48,13 +45,7 @@ public class BotNavigationParameters extends UT2004BotParameters {
      *
      */
     public String getResultPath() {
-        String basePath = String.format("%s/%s_%s/%s", task.getResultPath(), task.getNavigation(), task.getPathPlanner(), task.getMapName());
-        SimpleDateFormat dateFormat = new SimpleDateFormat("ddMMyy_HHmmss");
-        String fullPath = String.format("%s/%s/", basePath, dateFormat.format(new Date()));
-        File resultFile = new File(fullPath);
-        resultFile.mkdirs();
-
-        return fullPath;
+        return task.getResultPath();
     }
 
 //    public BotNavigationParameters setResultPath(String resultPath) {
@@ -106,23 +97,16 @@ public class BotNavigationParameters extends UT2004BotParameters {
 //        this.task.setNavigation(navigation);
 //        return this;
 //    }
-    public boolean getResultUnique() {
-        return task.isResultUnique();
-    }
 
-//    public BotNavigationParameters setResultUnique(boolean resultUnique) {
-//        this.task.setResultUnique(resultUnique);
-//        return this;
-//    }
     public boolean isRepeatTask() {
-        return task instanceof EvaluationRepeatTask;
+        return task instanceof NavigationEvaluationRepeatTask;
     }
 
     public String getRepeatFile() {
         if (!isRepeatTask()) {
             return null;
         } else {
-            return ((EvaluationRepeatTask) task).getRepeatFile();
+            return ((NavigationEvaluationRepeatTask) task).getRepeatFile();
         }
 
     }
@@ -137,6 +121,10 @@ public class BotNavigationParameters extends UT2004BotParameters {
 
     public RecordType getRecordType() {
         return task.getRecordType();
+    }
+
+    public INavigationEvaluationTask getTask() {
+        return task;
     }
 
     boolean isPathRecord() {

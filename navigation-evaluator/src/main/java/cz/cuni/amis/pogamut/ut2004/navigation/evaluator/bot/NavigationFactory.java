@@ -1,9 +1,7 @@
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot;
 
 import cz.cuni.amis.pogamut.base.agent.navigation.IPathPlanner;
-import cz.cuni.amis.pogamut.base.communication.worldview.object.WorldObjectId;
 import cz.cuni.amis.pogamut.base3d.worldview.object.ILocated;
-import cz.cuni.amis.pogamut.unreal.communication.messages.UnrealId;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.IUT2004Navigation;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.IUT2004PathExecutor;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004GetBackToNavGraph;
@@ -13,10 +11,7 @@ import cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004RunStraight;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.loquenavigator.LoqueNavigator;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.navmesh.NavMesh;
 import cz.cuni.amis.pogamut.ut2004.bot.impl.UT2004Bot;
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -38,8 +33,7 @@ public class NavigationFactory {
      * @return
      *
      */
-    public static IPathPlanner getPathPlanner(NavigationEvaluatingBot bot) {
-        String pathPlannerType = bot.getParams().getPathPlanner();
+    public static IPathPlanner getPathPlanner(EvaluatingBot bot, String pathPlannerType) {
         if (pathPlannerType != null) {
             if (pathPlannerType.equals("fwMap")) {
                 return bot.getFwMap();
@@ -63,7 +57,7 @@ public class NavigationFactory {
      * @return
      *
      */
-    public static IUT2004Navigation getNavigation(NavigationEvaluatingBot bot, UT2004Bot utBot) {
+    public static IUT2004Navigation getNavigation(EvaluatingBot bot, UT2004Bot utBot, String navigationType) {
         IUT2004PathExecutor pathExecutor = new UT2004PathExecutor<ILocated>(
                 utBot, bot.getInfo(), bot.getMove(),
                 new LoqueNavigator<ILocated>(utBot, bot.getInfo(), bot.getMove(), utBot.getLog()),

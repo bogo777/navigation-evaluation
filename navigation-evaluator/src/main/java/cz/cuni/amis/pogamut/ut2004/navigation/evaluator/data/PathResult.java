@@ -51,7 +51,7 @@ public class PathResult {
      * @return 
      */
     public String export() {
-        return String.format("%s;%s;%s;%s;%d", path.getId(), path.getStart().getId().getStringId(), path.getEnd().getId().getStringId(), type, duration);
+        return String.format("%s;%s;%s;%s;%d;%f;%d;%d", path.getId(), path.getStart().getId().getStringId(), path.getEnd().getId().getStringId(), type, duration, path.getLength(), path.getJumps(), path.getLifts());
     }
     
 }

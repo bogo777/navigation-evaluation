@@ -1,0 +1,11 @@
+<cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.NavigationEvaluationTask>
+  <paramsClass>cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.BotNavigationParameters</paramsClass>
+  <botClass>cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.NavigationEvaluatingBot</botClass>
+  <navigation>navigation</navigation>
+  <pathPlanner>fwMap</pathPlanner>
+  <mapName>DM-1on1-Crash</mapName>
+  <onlyRelevantPaths>true</onlyRelevantPaths>
+  <resultBasePath>/home/bohuslav_machac/evaluation/stats</resultBasePath>
+  <recordType>PATH_FAILED</recordType>
+  <limit>500</limit>
+</cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.NavigationEvaluationTask>

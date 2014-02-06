@@ -13,6 +13,33 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+    
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>cz.cuni.amis.pogamut.ut2004.navigation.evaluator.ServerRunner</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id> <!-- this is used for inheritance merges -->
+                        <phase>package</phase> <!-- bind to the packaging phase -->
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
     <dependencies>
         <dependency>
@@ -25,11 +52,18 @@
         <dependency>
             <groupId>cz.cuni.amis.pogamut</groupId>
             <artifactId>pogamut-ut2004</artifactId>
-            <version>3.5.4-SNAPSHOT</version>
+            <version>3.6.1-NAVEVAL</version>
             <scope>compile</scope>
         </dependency>
-    </dependencies>
+        
+        <dependency>
+            <groupId>cz.cuni.amis.utils</groupId>
+            <artifactId>process-execution</artifactId>
+            <version>1.0.0</version>
+            <scope>compile</scope>
+        </dependency>
 
+    </dependencies>
     <repositories>
         <repository>
             <id>amis-artifactory</id>
@@ -37,4 +71,5 @@
             <url>http://diana.ms.mff.cuni.cz:8081/artifactory/repo</url>
         </repository>
     </repositories>
+    
 </project>

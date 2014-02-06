@@ -22,5 +22,5 @@ package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot;
  * @author Bogo
  */
 public enum NavigationState {
-    NotMoving, OnWayToStart, Navigating, AtTheTarget, Failed
+    NotMoving, OnWayToStart, Navigating, AtTheTarget, Failed, FailedOnWayToStart
 }

@@ -24,7 +24,6 @@ import static cz.cuni.amis.pogamut.base.agent.navigation.PathExecutorState.STOPP
 import static cz.cuni.amis.pogamut.base.agent.navigation.PathExecutorState.STUCK;
 import static cz.cuni.amis.pogamut.base.agent.navigation.PathExecutorState.TARGET_REACHED;
 import cz.cuni.amis.pogamut.base3d.worldview.object.ILocated;
-import cz.cuni.amis.pogamut.base3d.worldview.object.Location;
 import cz.cuni.amis.pogamut.ut2004.agent.module.utils.TabooSet;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.astar.UT2004AStar;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.floydwarshall.FloydWarshallMap;
@@ -48,7 +47,6 @@ import cz.cuni.amis.utils.exception.PogamutException;
 import cz.cuni.amis.utils.flag.FlagListener;
 import java.io.IOException;
 import java.util.Date;
-import java.util.List;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.SimpleFormatter;
@@ -59,7 +57,7 @@ import java.util.logging.SimpleFormatter;
  *
  * @author Bogo
  */
-public class NavigationEvaluatingBot extends UT2004BotModuleController {
+public class NavigationEvaluatingBot extends EvaluatingBot {
 
     /**
      * Taboo set is working as "black-list", that is you might add some
@@ -72,11 +70,9 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
     private NavigationState state;
     private Date startDate;
     private EvaluationResult result;
-    private FileHandler fh;
     //TODO: Move
     int total = 0;
     int processed = 0;
-    private boolean isCompleted;
 
     public NavigationEvaluatingBot() {
     }
@@ -88,8 +84,8 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
     @Override
     protected void initializePathFinding(UT2004Bot bot) {
         fwMap = new FloydWarshallMap(bot);
-        pathPlanner = NavigationFactory.getPathPlanner(this);
-        navigation = NavigationFactory.getNavigation(this, bot);
+        pathPlanner = NavigationFactory.getPathPlanner(this, getParams().getPathPlanner());
+        navigation = NavigationFactory.getNavigation(this, bot, getParams().getNavigation());
 
         aStar = new UT2004AStar(bot);
         pathExecutor = navigation.getPathExecutor();
@@ -133,21 +129,6 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
 
         total = pathContainer.size();
         result = new EvaluationResult(total, info.game.getMapName(), log, getParams().getResultPath());
-
-
-        try {
-
-            // This block configure the logger with handler and formatter  
-            fh = new FileHandler(result.getLogFile());
-            log.addHandler(fh);
-            SimpleFormatter formatter = new SimpleFormatter();
-            fh.setFormatter(formatter);
-
-        } catch (SecurityException e) {
-            //TODO: Handle
-        } catch (IOException e) {
-            //TODO: Handle
-        }
 
         state = NavigationState.NotMoving;
 
@@ -251,18 +232,27 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
                 result.stopRecording(act, currentPath, getParams().keepOnlyFailedRecords());
             }
             result.addResult(currentPath, PathResult.ResultType.Completed, (new Date()).getTime() - startDate.getTime());
+            startDate = null;
             log.info(String.format("Completed %d/%d paths...", processed, total));
             currentPath = getNextPath(currentPath.getEnd());
 
             state = NavigationState.NotMoving;
         }
-        if (state == NavigationState.Failed) {
+        if (state == NavigationState.Failed || state == NavigationState.FailedOnWayToStart) {
             //Write failed report and find new path -> through NotMoving
             log.info("Navigation failed!");
-            if (getParams().isPathRecord()) {
-                result.stopRecording(act, currentPath, false);
+
+            if (state == NavigationState.Failed) {
+                if (getParams().isPathRecord()) {
+                    result.stopRecording(act, currentPath, false);
+                }
+                result.addResult(currentPath, PathResult.ResultType.Failed, startDate == null ? 0 : (new Date()).getTime() - startDate.getTime());
+            } else {
+                if (!pathContainer.addTabooPath(currentPath)) {
+                    result.addResult(currentPath, PathResult.ResultType.Failed, 0);
+                }
             }
-            result.addResult(currentPath, PathResult.ResultType.Failed, startDate == null ? 0 : (new Date()).getTime() - startDate.getTime());
+            startDate = null;
             currentPath = getNextPath(info.getNearestNavPoint());
             state = NavigationState.NotMoving;
         }
@@ -283,6 +273,7 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
                 currentPath = getNextPath(currentPath.getStart());
                 path = pathPlanner.computePath(currentPath.getStart(), currentPath.getEnd());
             }
+            currentPath.computeMetrics(path);
             log.info("Starting navigation on the path.");
             if (getParams().isPathRecord()) {
                 result.startRecording(act, currentPath);
@@ -299,20 +290,6 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
             navigation.navigate(currentPath.getStart());
             state = NavigationState.OnWayToStart;
         }
-    }
-
-    private double getPathLength(IPathFuture<ILocated> path) {
-        List<ILocated> list = path.get();
-
-        double sum = 0;
-
-        for (int i = 0; i < list.size() - 1; i++) {
-            Location l1 = list.get(i).getLocation();
-            Location l2 = list.get(i + 1).getLocation();
-            double distance = l1.getDistance(l2);
-            sum += distance;
-        }
-        return sum;
     }
 
     /**
@@ -349,7 +326,7 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
             case STUCK:
                 // the bot has stuck! ... target nav point is unavailable currently
                 tabooNavPoints.add(target, 60);
-                this.state = NavigationState.Failed;
+                this.state = this.state == NavigationState.OnWayToStart ? NavigationState.FailedOnWayToStart : NavigationState.Failed;
                 //giveUp();
 
                 break;
@@ -370,7 +347,7 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
         log.info("Picking new target navpoint.");
 
         // choose one feasible navpoint (== not belonging to tabooNavPoints) randomly
-        NavPoint chosen = MyCollections.getRandomFiltered(getWorldView().getAll(NavPoint.class).values(), tabooNavPoints);
+        NavPoint chosen = null; //MyCollections.getRandomFiltered(getWorldView().getAll(NavPoint.class).values(), tabooNavPoints);
 
         if (chosen != null) {
             return chosen;
@@ -390,24 +367,6 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
         new UT2004BotRunner(NavigationEvaluatingBot.class, "NavigationEvaluatingBot").setMain(true).setLogLevel(Level.FINE).startAgent();
     }
 
-//    private void giveUp() {
-//        currentRequest.pathInfos.get(this.testType).success = false;
-//        navigation.stopNavigation();
-//        boolean wasOnWay = false;
-//        if (onTheWay) {
-//            wasOnWay = true;
-//        }
-//        onTheWay = false;
-//        if (this.testType.equals("mesh")) {
-//            this.requestsProcessed++;
-//            if (wasOnWay) {
-//                updateStats(currentRequest);
-//            }
-//            currentRequest = null;
-//        } else {
-//            this.testType = "mesh";
-//        }
-//    }
     private Path getNextPath(NavPoint end) {
         Path path = end == null ? pathContainer.getPath() : pathContainer.getPath(end);
         if (path == null) {
@@ -421,16 +380,7 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
 
     private void wrapUpEvaluation() {
         log.info("No more paths to navigate, we are finished...");
-        if (getParams().isFullRecord()) {
-            result.stopRecording(act, getParams().keepOnlyFailedRecords() && !result.hasFailedResult());
-        }
-        result.exportAggregate(getParams().getResultUnique());
-        result.export(getParams().getResultUnique());
         isCompleted = true;
-
-        log.removeHandler(fh);
-        fh.close();
-
         new Runnable() {
             public void run() {
                 bot.stop();
@@ -438,7 +388,13 @@ public class NavigationEvaluatingBot extends UT2004BotModuleController {
         }.run();
     }
 
-    public boolean getResult() {
-        return isCompleted;
+    @Override
+    public void botShutdown() {
+        if (getParams().isFullRecord()) {
+            result.stopRecording(act, getParams().keepOnlyFailedRecords() && !result.hasFailedResult());
+        }
+        result.exportAggregate();
+        result.export();
+        super.botShutdown();
     }
 }

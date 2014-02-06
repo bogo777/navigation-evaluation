@@ -16,13 +16,17 @@
  */
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator;
 
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.EvaluationRepeatTask;
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.EvaluationTask;
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.RecordType;
 import cz.cuni.amis.utils.exception.PogamutException;
+import java.io.File;
+import java.io.FilenameFilter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 /**
  * Server runner for evaluation. Capable of multiple concurrent evaluations.
@@ -31,41 +35,48 @@ import java.util.List;
  */
 public class ServerRunner {
 
-    private static boolean hasCapacityForMultiEvaluation() {
-        int threshold = 3;
-        int available = Runtime.getRuntime().availableProcessors();
-        return available >= threshold;
-    }
+    //Platforms specific path in one place in code for now.
+    public static String recordsPath = System.getProperty("os.name").toLowerCase().contains("linux") ? "/home/bohuslav_machac/UT2004-Dedicated-3369-Linux/Demos" : "C:/Games/UT/Demos";
+    public static String executionDir = System.getProperty("os.name").toLowerCase().contains("linux") ? "/home/bohuslav_machac" : "C:/Temp/Pogamut";
+    public static String unrealHome = System.getProperty("os.name").toLowerCase().contains("linux") ? "/home/bohuslav_machac/UT2004-Dedicated-3369-Linux" : "C:/Games/UT";
 
     public ServerRunner() {
+        log.setLevel(Level.ALL);
+        ConsoleHandler handler = new ConsoleHandler();
+        handler.setFormatter(new SimpleFormatter());
+        handler.setLevel(Level.ALL);
+        log.addHandler(handler);
     }
     private List<EvaluatorHandle> evaluations = new LinkedList<EvaluatorHandle>();
-    private List<EvaluationTask> tasks = initTasks();
+    private List<File> tasks;
+    private static final Logger log = Logger.getLogger("ServerRunner");
 
-    public List<EvaluationTask> initTasks() {
-        ArrayList<EvaluationTask> myTasks = new ArrayList<EvaluationTask>();
+    public void initTasks(String[] args) {
+        tasks = new ArrayList<File>();
 
-        //DM-TrainingDay task
-        EvaluationTask taskDMTrainingDay = new EvaluationTask("navigation", "fwMap", "DM-TrainingDay", true, 10, "C:/Temp/Pogamut/stats", true, RecordType.PATH);
-        myTasks.add(taskDMTrainingDay);
-
-//        //DM-Crash task
-//        EvaluationTask taskDMCrash = new EvaluationTask("navigation", "fwMap", "DM-1on1-Crash", true, 10, "C:/Temp/Pogamut/stats/", true, RecordType.FULL);
-//        myTasks.add(taskDMCrash);
-
-        //DM-Crash task
-//        EvaluationTask taskRepeat = new EvaluationRepeatTask("C:/Temp/Pogamut/stats/navigation_fwMap/DM-1on1-Crash_130114_113337.csv", "navigation", "fwMap", "C:/Temp/Pogamut/stats/", RecordType.FULL);
-//        myTasks.add(taskRepeat);
-
-        return myTasks;
+        String evalDir = ".";
+        if (args.length == 1) {
+            evalDir = args[0];
+        }
+        File x = new File(evalDir);
+        FilenameFilter filter = new FilenameFilter() {
+            public boolean accept(File dir, String name) {
+                return name.endsWith(".eval.xml");
+            }
+        };
+        tasks.addAll(Arrays.asList(x.listFiles(filter)));
     }
 
     public static void main(String args[]) throws PogamutException {
         ServerRunner runner = new ServerRunner();
 
+        runner.initTasks(args);
+
         if (hasCapacityForMultiEvaluation()) {
+            log.fine("Multi evaluation");
             runner.run();
         } else {
+            log.fine("Direct evaluation");
             DirectRunner directRunner = new DirectRunner(runner);
             directRunner.run();
         }
@@ -74,28 +85,31 @@ public class ServerRunner {
     }
 
     private void run() {
-
+        log.log(Level.INFO, "Starting multiple evaluation of {0} tasks", tasks.size());
         boolean done = tasks.isEmpty();
         while (!done) {
-            checkRunningEvaluations();
             boolean hasFreeTasks = true;
             while (hasCapacity() && hasFreeTasks) {
-                EvaluationTask task = getFreeTask();
+                File task = getFreeTask();
                 if (task == null) {
                     hasFreeTasks = false;
                 } else {
                     EvaluatorHandle handle = new EvaluatorHandle();
-                    if (handle.createEvaluator(task)) {
+                    if (handle.createEvaluator(task, log)) {
+                        log.fine("Created new evaluation handler");
                         evaluations.add(handle);
                     }
                 }
             }
-            done = tasks.isEmpty();
+
+            log.log(Level.INFO, "Tasks in progress: {0}, Unfinished tasks: {1}", new Object[]{evaluations.size(), tasks.size()});
             try {
                 Thread.sleep(5000);
             } catch (InterruptedException ex) {
                 //Bla bla
             }
+            checkRunningEvaluations();
+            done = tasks.isEmpty();
         }
 
 
@@ -114,13 +128,9 @@ public class ServerRunner {
                 case NOT_RESPONDING:
                     break;
                 case FAILED:
-                    finishedHandles.add(handle);
-                    break;
                 case DESTROYED:
-                    finishedHandles.add(handle);
-                    break;
                 case COMPLETED:
-                    EvaluationTask task = handle.getTask();
+                    File task = handle.getTask();
                     tasks.remove(task);
                     finishedHandles.add(handle);
                     break;
@@ -133,14 +143,21 @@ public class ServerRunner {
         }
     }
 
+    private static boolean hasCapacityForMultiEvaluation() {
+        return true;
+//        int threshold = 3;
+//        int available = Runtime.getRuntime().availableProcessors();
+//        return available >= threshold;
+    }
+
     private boolean hasCapacity() {
-        int used = 1 + evaluations.size() * 2;
+        int used = 0 + evaluations.size() * 2;
         int available = Runtime.getRuntime().availableProcessors();
         return used < available;
     }
 
-    protected EvaluationTask getFreeTask() {
-        for (EvaluationTask task : tasks) {
+    protected File getFreeTask() {
+        for (File task : tasks) {
             boolean isFree = true;
             for (EvaluatorHandle handle : evaluations) {
                 if (handle.getTask() == task) {
@@ -155,7 +172,7 @@ public class ServerRunner {
         return null;
     }
 
-    public List<EvaluationTask> getTasks() {
+    public List<File> getTasks() {
         return tasks;
     }
 }

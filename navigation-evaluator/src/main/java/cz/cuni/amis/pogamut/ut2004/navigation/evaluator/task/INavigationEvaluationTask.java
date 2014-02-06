@@ -1,10 +1,14 @@
-package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data;
+package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task;
+
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.BotNavigationParameters;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.NavigationEvaluatingBot;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.RecordType;
 
 /**
  *
  * @author Bogo
  */
-public interface IEvaluationTask {
+public interface INavigationEvaluationTask extends IEvaluationTask<BotNavigationParameters, NavigationEvaluatingBot> {
 
     public void setLimit(int limit);
 
@@ -23,14 +27,8 @@ public interface IEvaluationTask {
     public String getNavigation();
 
     public void setNavigation(String navigation);
-
-    public boolean isResultUnique();
-
-    public void setResultUnique(boolean resultUnique);
     
     public String getResultPath();
-    
-    public String getMapName();
     
     public RecordType getRecordType();
     

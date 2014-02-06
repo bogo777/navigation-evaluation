@@ -21,15 +21,12 @@ import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.Path;
 import cz.cuni.amis.pogamut.base.utils.logging.LogCategory;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbcommands.Record;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbcommands.StopRecord;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.ServerRunner;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashSet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Result of evaluation of corresponding task.
@@ -83,10 +80,10 @@ public class EvaluationResult {
      * Exports aggregate statistics about evaluation. TODO: Create unique files
      * on request?
      */
-    public void exportAggregate(boolean uniqueFile) {
+    public void exportAggregate() {
         FileWriter fstream = null;
         try {
-            File resultFile = getResultFile(uniqueFile, "aggregate.csv");
+            File resultFile = getResultFile("aggregate.csv");
             fstream = new FileWriter(resultFile);
             BufferedWriter out = new BufferedWriter(fstream);
             out.write("Map;Total;Processes;Completed;Failed;NotBuilt");
@@ -108,21 +105,17 @@ public class EvaluationResult {
 
     }
 
-    public void exportAggregate() {
-        exportAggregate(false);
-    }
-
     /**
      * Export complete statistics about evaluation.
      */
-    public void export(boolean uniqueFile) {
+    public void export() {
         FileWriter fstream = null;
         try {
-            File resultFile = getResultFile(uniqueFile, "csv");
+            File resultFile = getResultFile("csv");
             resultFile.getParentFile().mkdirs();
             fstream = new FileWriter(resultFile);
             BufferedWriter out = new BufferedWriter(fstream);
-            out.write("ID;From;To;Type;Duration");
+            out.write("ID;From;To;Type;Duration;Length;Jumps;Lifts");
             out.newLine();
             for (PathResult result : pathResults) {
                 out.write(result.export());
@@ -142,11 +135,7 @@ public class EvaluationResult {
         }
     }
 
-    public void export() {
-        export(false);
-    }
-
-    private File getResultFile(boolean unique, String fileNameSuffix) {
+    private File getResultFile(String fileNameSuffix) {
         String fileName = "data." + fileNameSuffix;
         String fullFilePath = resultPath + fileName;
         File resultFile = new File(fullFilePath);
@@ -171,7 +160,7 @@ public class EvaluationResult {
         }
         //Move record file to result directory
         String recordFileName = getRecordName(path) + ".demo4";
-        File recordFile = new File("C:/Games/UT/Demos", recordFileName);
+        File recordFile = new File(ServerRunner.recordsPath, recordFileName);
         if (delete) {
             recordFile.delete();
         } else {
@@ -189,7 +178,7 @@ public class EvaluationResult {
         }
         //Move record file to result directory
         String recordFileName = getRecordName() + ".demo4";
-        File recordFile = new File("C:/Games/UT/Demos", recordFileName);
+        File recordFile = new File(ServerRunner.recordsPath, recordFileName);
         if (delete) {
             recordFile.delete();
         } else {
