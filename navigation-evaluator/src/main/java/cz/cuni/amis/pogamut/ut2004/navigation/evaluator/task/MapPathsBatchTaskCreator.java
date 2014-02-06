@@ -34,6 +34,7 @@ public class MapPathsBatchTaskCreator {
     private String pathPlanner;
     private String resultPath;
     private List<PathType> pathTypes;
+    private boolean relevantOnly;
     
     /**
      * Default constructor.
@@ -45,13 +46,14 @@ public class MapPathsBatchTaskCreator {
      * @param resultPath
      * @param pathTypes 
      */
-    public MapPathsBatchTaskCreator(int batchNumber, List<String> maps, String navigation, String pathPlanner, String resultPath, List<PathType> pathTypes) {
+    public MapPathsBatchTaskCreator(int batchNumber, List<String> maps, String navigation, String pathPlanner, String resultPath, List<PathType> pathTypes, boolean relevantOnly) {
         this.batchNumber = batchNumber;
         this.maps = maps;
         this.navigation = navigation;
         this.pathPlanner = pathPlanner;
         this.resultPath = resultPath;
         this.pathTypes = pathTypes;
+        this.relevantOnly = relevantOnly;
     }
     
     /**
@@ -64,7 +66,7 @@ public class MapPathsBatchTaskCreator {
         
         for (String map : maps) {
             for (PathType type : pathTypes) {
-                tasks.add(new MapPathsEvaluationTask(map, navigation, pathPlanner, resultPath, type, batchNumber));
+                tasks.add(new MapPathsEvaluationTask(map, navigation, pathPlanner, resultPath, type, relevantOnly, batchNumber));
             }
         }
         

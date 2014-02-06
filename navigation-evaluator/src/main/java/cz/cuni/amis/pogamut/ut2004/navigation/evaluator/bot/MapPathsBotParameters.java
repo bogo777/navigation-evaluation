@@ -58,4 +58,8 @@ public class MapPathsBotParameters extends UT2004BotParameters {
         return task;
     }
     
+    public boolean getRelevantOnly() {
+        return task.getRelevantOnly();
+    }
+    
 }

@@ -103,10 +103,17 @@ public class MapPathsBot extends EvaluatingBot {
         //Recomputing fwMap
         fwMap.refreshPathMatrix();
 
+        boolean relevantOnly = getParams().getRelevantOnly();
+        
         //Path creation evaluation
         for (NavPoint from : navPoints.getNavPoints().values()) {
+            if(relevantOnly && !isRelevant(from)) {
+                continue;
+            }
             for (NavPoint to : navPoints.getNavPoints().values()) {
                 if (from.equals(to)) {
+                    continue;
+                } else if(relevantOnly && !isRelevant(to)) {
                     continue;
                 }
 
@@ -147,5 +154,9 @@ public class MapPathsBot extends EvaluatingBot {
 
     private boolean removeLifts(PathType pathType) {
         return pathType == PathType.NO_LIFTS || pathType == PathType.NO_JUMP_NO_LIFTS;
+    }
+
+    private boolean isRelevant(NavPoint from) {
+        return from.isPlayerStart() || from.isInvSpot();
     }
 }

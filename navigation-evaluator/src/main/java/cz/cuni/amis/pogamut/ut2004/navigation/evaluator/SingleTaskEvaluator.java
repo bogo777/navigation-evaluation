@@ -90,6 +90,7 @@ public class SingleTaskEvaluator {
         int stopTimeout = 1000 * 60 * (360);
         try {
             server = run(task.getMapName());
+            System.setProperty("pogamut.ut2004.server.port", Integer.toString(server.getControlPort()));
             UT2004BotRunner<UT2004Bot, UT2004BotParameters> botRunner = new UT2004BotRunner<UT2004Bot, UT2004BotParameters>(task.getBotClass(), "EvaluatingBot", server.getHost(), server.getBotPort());
             //botRunner.setLogLevel(Level.FINE);
             log.fine("Starting evaluation bot.");

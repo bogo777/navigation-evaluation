@@ -34,7 +34,12 @@ public class MapPathsEvaluationTask extends EvaluationTask<MapPathsBotParameters
     private String resultPath;
     private PathType pathType;
     private int batchNumber = 0;
+    private boolean relevantOnly = false;
 
+    private MapPathsEvaluationTask() {
+        super(MapPathsBotParameters.class, MapPathsBot.class);
+    }
+    
     /**
      * Default constructor.
      * 
@@ -44,13 +49,14 @@ public class MapPathsEvaluationTask extends EvaluationTask<MapPathsBotParameters
      * @param resultPath
      * @param pathType 
      */
-    public MapPathsEvaluationTask(String mapName, String navigation, String pathPlanner, String resultPath, PathType pathType) {
-        super(MapPathsBotParameters.class, MapPathsBot.class);
+    public MapPathsEvaluationTask(String mapName, String navigation, String pathPlanner, String resultPath, PathType pathType, boolean relevantOnly) {
+        this();
         this.navigation = navigation;
         this.mapName = mapName;
         this.pathPlanner = pathPlanner;
         this.resultPath = resultPath;
         this.pathType = pathType;
+        this.relevantOnly = relevantOnly;
     }
 
     /**
@@ -63,8 +69,8 @@ public class MapPathsEvaluationTask extends EvaluationTask<MapPathsBotParameters
      * @param pathType
      * @param batchNumber 
      */
-    public MapPathsEvaluationTask(String mapName, String navigation, String pathPlanner, String resultPath, PathType pathType, int batchNumber) {
-        this(mapName, navigation, pathPlanner, resultPath, pathType);
+    public MapPathsEvaluationTask(String mapName, String navigation, String pathPlanner, String resultPath, PathType pathType, boolean relevantOnly, int batchNumber) {
+        this(mapName, navigation, pathPlanner, resultPath, pathType, relevantOnly);
         this.batchNumber = batchNumber;
     }
 
@@ -123,13 +129,13 @@ public class MapPathsEvaluationTask extends EvaluationTask<MapPathsBotParameters
     @Deprecated
     public static MapPathsEvaluationTask buildFromArgs(String[] args) {
         //TODO: Check validity of args?
-        if (args.length == 5) {
+        if (args.length == 6) {
 //            String[] pathTypeStrings = args[4].split(";");
 //            List<PathType> types = new LinkedList<PathType>();
 //            for (String type : pathTypeStrings) {
 //                types.add(PathType.valueOf(type));
 //            }
-            return new MapPathsEvaluationTask(args[0], args[1], args[2], args[3], PathType.valueOf(args[4]));
+            return new MapPathsEvaluationTask(args[0], args[1], args[2], args[3], PathType.valueOf(args[4]), Boolean.parseBoolean(args[5]));
         }
         return null;
     }
@@ -163,6 +169,10 @@ public class MapPathsEvaluationTask extends EvaluationTask<MapPathsBotParameters
 
     public String getFileName() {
         return String.format("MapPaths_%s_%s_%s_%d", navigation, mapName, pathType.name(), batchNumber);
+    }
+
+    public boolean getRelevantOnly() {
+        return relevantOnly;
     }
 
     /**

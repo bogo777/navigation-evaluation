@@ -68,6 +68,8 @@ public class EvaluationTaskFactory {
                 fileName = directory + fileName;
             }
             XStream xstream = new XStream();
+            File file = new File(fileName);
+            file.getParentFile().mkdirs();
             writer = new FileWriter(fileName);
             xstream.toXML(task, writer);
         } catch (IOException ex) {
