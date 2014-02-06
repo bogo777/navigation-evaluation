@@ -64,6 +64,9 @@ public class EvaluationTaskFactory {
         FileWriter writer = null;
         try {
             String fileName = task.getFileName() + ".eval.xml";
+            if(directory != null) {
+                fileName = directory + fileName;
+            }
             XStream xstream = new XStream();
             writer = new FileWriter(fileName);
             xstream.toXML(task, writer);

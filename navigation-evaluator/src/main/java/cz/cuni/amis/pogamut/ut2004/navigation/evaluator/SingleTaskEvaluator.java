@@ -45,8 +45,8 @@ public class SingleTaskEvaluator {
 
     /**
      * Main method. Accepts path to task file in args.
-     * 
-     * @param args 
+     *
+     * @param args
      */
     public static void main(String args[]) {
 
@@ -62,8 +62,8 @@ public class SingleTaskEvaluator {
 
     /**
      * Redirects out to save log in file.
-     * 
-     * @param logPath 
+     *
+     * @param logPath
      */
     private static void setupLog(String logPath) {
         try {
@@ -135,7 +135,11 @@ public class SingleTaskEvaluator {
         UCCWrapperConf conf = new UCCWrapperConf();
         conf.setUnrealHome(ServerRunner.unrealHome);
         conf.setStartOnUnusedPort(true);
-        conf.setGameType("BotDeathMatch");
+        if (mapName.startsWith("DM")) {
+            conf.setGameType("BotDeathMatch");
+        } else if (mapName.startsWith("CTF")) {
+            conf.setGameType("BotCTFGame");
+        }
         conf.setMapName(mapName);
 
         UCCWrapper server = new UCCWrapper(conf);

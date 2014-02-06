@@ -17,6 +17,7 @@
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task;
 
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapPathsEvaluationTask.PathType;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -69,4 +70,91 @@ public class MapPathsBatchTaskCreator {
         
         return tasks;
     }
+    
+    public static List<String> getAllDMMaps() {
+        return Arrays.asList(DM_MAPS);
+    }
+    
+    public static List<String> getAllCTFMaps() {
+        return Arrays.asList(CTF_MAPS);
+    }
+    
+    public static List<String> getAllMaps() {
+        LinkedList<String> all = new LinkedList<String>(getAllDMMaps());
+        all.addAll(getAllCTFMaps());
+        return all;
+    }
+    
+    public static final String[] CTF_MAPS = new String[] {
+		"CTF-1on1-Joust",
+		"CTF-AbsoluteZero",
+		"CTF-Avaris",
+		"CTF-BridgeOfFate",
+		"CTF-Chrome",
+		"CTF-Citadel",
+		"CTF-Colossus",
+		"CTF-December",
+		"CTF-DE-ElecFields",
+		"CTF-DoubleDammage",
+		"CTF-Face3",
+		"CTF-FaceClassic",
+		"CTF-Geothermal",
+		"CTF-Grassyknoll",
+		"CTF-Grendelkeep",
+		"CTF-January",
+		"CTF-Lostfaith",
+		"CTF-Magma",
+		"CTF-Maul",
+		"CTF-MoonDragon",
+		"CTF-Orbital2",
+		"CTF-Smote",
+		"CTF-TwinTombs"
+	};
+	
+	public static String[] DM_MAPS = new String[] {
+		"DM-1on1-Albatross",
+		"DM-1on1-Crash",
+		"DM-1on1-Desolation",
+		"DM-1on1-Idoma",
+		"DM-1on1-Irondust",
+		"DM-1on1-Mixer",
+		"DM-1on1-Roughinery",
+		"DM-1on1-Serpen-tine",
+		"DM-1on1-Spirit",
+		"DM-1on1-Squader",
+		"DM-1on1-Trite",
+		"DM-Antalus",
+		"DM-Asbestos",
+		"DM-Compressed",
+		"DM-Corrugation",
+		"DM-Curse4",
+		"DM-Deck17",
+		"DM-DE-Grendelkeep",
+		"DM-DE-Ironic",
+		"DM-DE-Osiris2",
+		"DM-DesertIsle",
+		"DM-Flux2",
+		"DM-Gael",
+		"DM-Gestalt",
+		"DM-Goliath",
+		"DM-HyperBlast2",
+		"DM-Icetomb",
+		"DM-Inferno",
+		"DM-Injector",
+		"DM-Insidious",
+		"DM-IronDeity",
+		"DM-Junkyard",
+		"DM-Leviathan",
+		"DM-Metallurgy",
+		"DM-Morpheus3",
+		"DM-Oceanic",
+		"DM-Phobos2",
+		"DM-Plunge",
+		"DM-Rankin",
+		"DM-Rrajigar",
+		"DM-Rustatorium",
+		"DM-Sulphur",
+		"DM-TokaraForest",
+		"DM-TrainingDay"
+	};
 }
