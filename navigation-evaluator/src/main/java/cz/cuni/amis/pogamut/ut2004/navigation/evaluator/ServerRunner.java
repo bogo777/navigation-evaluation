@@ -87,7 +87,7 @@ public class ServerRunner {
         runner.initTasks(args);
 
         //Check if there are enough cores available for multiple concurrent evaluations.
-        if (hasCapacityForMultiEvaluation()) {
+        if (hasCapacityForMultiEvaluation() && runner.getTasks().size() > 1) {
             log.fine("Multi evaluation");
             runner.run();
         } else {

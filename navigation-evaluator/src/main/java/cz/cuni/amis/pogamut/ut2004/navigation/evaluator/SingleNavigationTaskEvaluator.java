@@ -41,7 +41,9 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
     @Override
     public int execute(IEvaluationTask task) {
         //We can run the task without path record in standard Evaluator... 
-        if (task.getClass().isAssignableFrom(NavigationEvaluationTask.class)) {
+        if (!task.getClass().isAssignableFrom(NavigationEvaluationTask.class)) {
+            return super.execute(task);
+        } else {
             NavigationEvaluationTask nTask = (NavigationEvaluationTask) task;
             if (nTask.getRecordType() != RecordType.PATH && nTask.getRecordType() != RecordType.PATH_FAILED) {
                 return super.execute(task);
@@ -63,6 +65,7 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
                 UT2004BotRunner<UT2004Bot, UT2004BotParameters> botRunner = new UT2004BotRunner<UT2004Bot, UT2004BotParameters>(task.getBotClass(), "EvaluatingBot", server.getHost(), server.getBotPort());
                 //botRunner.setLogLevel(Level.FINE);
                 log.fine("Starting evaluation bot.");
+                System.out.println("Starting evaluation bot from NavigationTaskEvaluator.");
                 bot = botRunner.startAgents(params).get(0); //task.getBotParams()).get(0); //
                 bot.awaitState(IAgentStateDown.class, stopTimeout);
 
@@ -75,28 +78,32 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
                 if (bot != null && ((EvaluatingBot) bot.getController()).isCompleted()) {
                     status = 0;
                     log.fine("Evaluation completed");
+                    System.out.println("Evaluation completed");
                 } else {
                     status = -2;
                     log.throwing(SingleTaskEvaluator.class.getSimpleName(), "execute", pex);
+                    System.out.println("Unknown Pogamut exception.");
                 }
             } finally {
                 if (bot != null && bot.notInState(IAgentStateDown.class)) {
                     bot.stop();
                     bot.kill();
                     //throw new RuntimeException("Bot did not stopped in " + stopTimeout + " ms.");
-                    status = -3;
+                    status = 0;
+                    System.out.println("Bad termination of bot.");
                 }
                 if (bot != null) {
+                    System.out.println("Correct repeat finally..");
                     NavigationEvaluatingBot evalBot = (NavigationEvaluatingBot) bot.getController();
                     if (status == 0) {
                         ExtendedBotNavigationParameters paramsExt = evalBot.getNewExtendedParams();
-
+                        System.out.println("Correct status.");
                         if (paramsExt.getEvaluationResult().getProcessedCount() >= paramsExt.getLimitForCompare() || paramsExt.getPathContainer().isEmpty()) {
                             done = true;
                             continue;
                         }
-                        params = new ExtendedBotNavigationParameters((INavigationEvaluationTask)task, paramsExt.getPathContainer(), paramsExt.getEvaluationResult());
-                        ((ExtendedBotNavigationParameters)params).setIteration(paramsExt.getIteration() + 1);
+                        params = new ExtendedBotNavigationParameters((INavigationEvaluationTask) task, paramsExt.getPathContainer(), paramsExt.getEvaluationResult());
+                        ((ExtendedBotNavigationParameters) params).setIteration(paramsExt.getIteration() + 1);
                     }
                 }
                 if (server != null) {

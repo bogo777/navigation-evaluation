@@ -43,7 +43,7 @@ public abstract class SingleTaskEvaluatorBase {
         log.fine("Running SingleTaskEvaluator");
         IEvaluationTask task = EvaluationTaskFactory.build(args);
         log.fine("Task built from args");
-        SingleTaskEvaluator evaluator = new SingleTaskEvaluator();
+        SingleNavigationTaskEvaluator evaluator = new SingleNavigationTaskEvaluator();
         int result = evaluator.execute(task);
         System.exit(result);
     }
@@ -59,11 +59,8 @@ public abstract class SingleTaskEvaluatorBase {
         UCCWrapperConf conf = new UCCWrapperConf();
         conf.setUnrealHome(ServerRunner.unrealHome);
         conf.setStartOnUnusedPort(true);
-        if (mapName.startsWith("DM")) {
-            conf.setGameType("BotDeathMatch");
-        } else if (mapName.startsWith("CTF")) {
-            conf.setGameType("BotCTFGame");
-        }
+        String gameType = MapInfo.getGameType(mapName);
+        conf.setGameType(gameType);
         conf.setMapName(mapName);
         UCCWrapper server = new UCCWrapper(conf);
         log.fine("UCC server started.");

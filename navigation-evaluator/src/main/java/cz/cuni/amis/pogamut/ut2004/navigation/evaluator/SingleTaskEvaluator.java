@@ -25,6 +25,7 @@ import cz.cuni.amis.pogamut.ut2004.server.exception.UCCStartException;
 import cz.cuni.amis.pogamut.ut2004.utils.UCCWrapper;
 import cz.cuni.amis.pogamut.ut2004.utils.UT2004BotRunner;
 import cz.cuni.amis.utils.exception.PogamutException;
+import java.util.logging.Level;
 
 /**
  * Evaluator of single {@link IEvaluationTask}. Starts its own UCC server and
@@ -53,7 +54,7 @@ public class SingleTaskEvaluator extends SingleTaskEvaluatorBase {
             server = run(task.getMapName());
             System.setProperty("pogamut.ut2004.server.port", Integer.toString(server.getControlPort()));
             UT2004BotRunner<UT2004Bot, UT2004BotParameters> botRunner = new UT2004BotRunner<UT2004Bot, UT2004BotParameters>(task.getBotClass(), "EvaluatingBot", server.getHost(), server.getBotPort());
-            //botRunner.setLogLevel(Level.FINE);
+            botRunner.setLogLevel(Level.FINE);
             log.fine("Starting evaluation bot.");
             bot = botRunner.startAgents(task.getBotParams()).get(0);
             bot.awaitState(IAgentStateDown.class, stopTimeout);

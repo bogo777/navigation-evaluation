@@ -16,8 +16,11 @@
  */
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator;
 
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.RecordType;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.EvaluationTaskFactory;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.IEvaluationTask;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.JumpInspectingTask;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.NavigationEvaluationBatchTaskCreator;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -36,14 +39,15 @@ public class TaskFileGenerator {
         List<IEvaluationTask> myTasks = new LinkedList<IEvaluationTask>();
 
         List<String> maps = Arrays.asList(
-                "DM-1on1-Albatross",
+     //           "DM-1on1-Albatross",
                 "DM-1on1-Idoma",
                 "DM-1on1-Irondust",
-                "DM-1on1-Mixer",
+      //          "DM-1on1-Mixer",
                 "DM-1on1-Roughinery",
-                "DM-1on1-Desolation",
-                "DM-1on1-Crash",
-                "DM-TrainingDay");
+                "DM-1on1-Desolation"
+     //           ,"DM-1on1-Crash"
+    //            ,"DM-TrainingDay"
+                );
         
         //MapPathsBatchTaskCreator mapPathsBatchTask = new MapPathsBatchTaskCreator(3, MapPathsBatchTaskCreator.getAllMaps(), "navigation", "fwMap", statsPath + "/maps", Arrays.asList(PathType.values()), false);
         //myTasks.addAll(mapPathsBatchTask.createBatch());
@@ -59,16 +63,8 @@ public class TaskFileGenerator {
 //        NavigationEvaluationTask taskDMCrash = new NavigationEvaluationTask("navigation", "fwMap", "DM-1on1-Crash", true, 10, statsPath, true, RecordType.NONE);
 //        myTasks.add(taskDMCrash);
 
-//        List<String> maps = Arrays.asList(
-//                "DM-1on1-Albatross",
-//                "DM-1on1-Idoma",
-//                "DM-1on1-Irondust",
-//                "DM-1on1-Mixer",
-//                "DM-1on1-Roughinery",
-//                "DM-1on1-Desolation",
-//                "DM-1on1-Crash",
-//                "DM-TrainingDay");
-//        myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("navigation", "fwMap", maps, true, -1, statsPath, RecordType.NONE));
+
+        myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("navigation", "fwMap", maps, true, -1, statsPath, RecordType.PATH_FAILED));
 
 //        XStream xstream = new XStream();
 //        xstream.from
@@ -76,9 +72,13 @@ public class TaskFileGenerator {
         //DM-Crash task
 //        NavigationEvaluationTask taskRepeat = new NavigationEvaluationRepeatTask("C:/Temp/Pogamut/stats/navigation_fwMap/DM-1on1-Crash/160114_112055/data.csv", "navigation", "fwMap", "C:/Temp/Pogamut/stats/", RecordType.FULL);
 //        myTasks.add(taskRepeat);
+        
+//        JumpInspectingTask jumpTask = new JumpInspectingTask();
+//        jumpTask.setResultPath(statsPath);
+//        myTasks.add(jumpTask);
 
         for (IEvaluationTask task : myTasks) {
-            EvaluationTaskFactory.toXml(task, "C:/Temp/Pogamut/060214_maps_all/");
+            EvaluationTaskFactory.toXml(task, "C:/Temp/Pogamut/160214_long/");
         }
     }
 }

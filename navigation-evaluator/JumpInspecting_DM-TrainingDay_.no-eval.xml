@@ -1,0 +1,5 @@
+<cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.JumpInspectingTask>
+  <paramsClass>cz.cuni.amis.pogamut.ut2004.bot.params.UT2004BotParameters</paramsClass>
+  <botClass>cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.JumpInspectingBot</botClass>
+  <resultBasePath>C:/Temp/Pogamut/stats</resultBasePath>
+</cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.JumpInspectingTask>

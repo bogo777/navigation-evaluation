@@ -23,7 +23,10 @@ import static cz.cuni.amis.pogamut.base.agent.navigation.PathExecutorState.PATH_
 import static cz.cuni.amis.pogamut.base.agent.navigation.PathExecutorState.STOPPED;
 import static cz.cuni.amis.pogamut.base.agent.navigation.PathExecutorState.STUCK;
 import static cz.cuni.amis.pogamut.base.agent.navigation.PathExecutorState.TARGET_REACHED;
+import cz.cuni.amis.pogamut.base.communication.worldview.object.IWorldObjectEventListener;
+import cz.cuni.amis.pogamut.base.communication.worldview.object.event.WorldObjectEvent;
 import cz.cuni.amis.pogamut.base3d.worldview.object.ILocated;
+import cz.cuni.amis.pogamut.unreal.communication.messages.UnrealId;
 import cz.cuni.amis.pogamut.ut2004.agent.module.utils.TabooSet;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.astar.UT2004AStar;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.floydwarshall.FloydWarshallMap;
@@ -37,8 +40,10 @@ import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.BotKill
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.ConfigChange;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.GameInfo;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.InitedMessage;
+import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.LocationUpdate;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPoint;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.Self;
+import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.SelfMessage;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.EvaluationResult;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.PathResult;
 import cz.cuni.amis.pogamut.ut2004.utils.UT2004BotRunner;
@@ -68,7 +73,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
     private NavigationState state;
     private Date startDate;
     private EvaluationResult result;
-    public static final int PATH_RECORDS_LIMIT = 10;
+    public static final int PATH_RECORDS_LIMIT = 250;
 
     public NavigationEvaluatingBot() {
     }
@@ -153,6 +158,27 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
     @SuppressWarnings("unchecked")
     @Override
     public void botInitialized(GameInfo gameInfo, ConfigChange config, InitedMessage init) {
+
+        world.addObjectListener(LocationUpdate.class, new IWorldObjectEventListener<LocationUpdate, WorldObjectEvent<LocationUpdate>>() {
+            public void notify(WorldObjectEvent<LocationUpdate> t) {
+                LocationUpdate locationUpdate = t.getObject();
+                Self self = bot.getSelf();
+                if(self == null) {
+                    return;
+                }
+                Self newSelf = new SelfMessage(self.getId(), self.getBotId(), self.getName(), self.isVehicle(),
+                        locationUpdate.getLoc(), locationUpdate.getVel(), locationUpdate.getRot(), self.getTeam(),
+                        self.getWeapon(), self.isShooting(), self.getHealth(), self.getPrimaryAmmo(),
+                        self.getSecondaryAmmo(), self.getAdrenaline(), self.getArmor(), self.getSmallArmor(),
+                        self.isAltFiring(), self.isCrouched(), self.isWalking(), self.getFloorLocation(),
+                        self.getFloorNormal(), self.getCombo(), self.getUDamageTime(), self.getAction(),
+                        self.getEmotLeft(), self.getEmotCenter(), self.getEmotRight(), self.getBubble(),
+                        self.getAnim());
+                log.fine("LOCATION UPDATE - Updating location from LocationUpdate message...");
+                world.notifyImmediately(newSelf);
+            }
+        });
+
         // initialize taboo set where we store temporarily unavailable navpoints
         tabooNavPoints = new TabooSet<NavPoint>(bot);
 
@@ -166,7 +192,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
         } else {
             pathContainer = extendedParams.getPathContainer();
             pathContainer.setWorld(world);
-            
+
             result = extendedParams.getEvaluationResult();
             result.setLog(log);
         }
@@ -355,6 +381,8 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
                 // if path computation fails to whatever reason, just try another navpoint
                 // taboo bad navpoint for 3 minutes
                 tabooNavPoints.add(target, 180);
+                //TODO: Possibly log as NotBuilt path??
+                this.state = this.state == NavigationState.OnWayToStart ? NavigationState.FailedOnWayToStart : NavigationState.Failed;
                 break;
 
             case TARGET_REACHED:
@@ -411,16 +439,21 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
         if (path == null) {
             path = pathContainer.getPath();
         }
-        if (path == null || result.getProcessedCount() >= getParams().getLimitForCompare()) {
+        int processedCount = result.getProcessedCount();
+        if (path == null || processedCount >= getParams().getLimitForCompare()) {
             wrapUpEvaluation();
         }
         if (getParams().isPathRecord()) {
             ExtendedBotNavigationParameters params = getExtendedParams();
             int iteration = params == null ? 1 : params.getIteration();
-            if (result.getProcessedCount() >= iteration * PATH_RECORDS_LIMIT) {
+            if (processedCount >= iteration * PATH_RECORDS_LIMIT) {
                 //Shutdown bot and restart ucc.
                 wrapUpEvaluation();
             }
+        }
+        if (processedCount > 0 && processedCount % 10 == 0) {
+            //Inform about progress every 10 completed paths
+            result.exportAggregate();
         }
         return path;
     }
