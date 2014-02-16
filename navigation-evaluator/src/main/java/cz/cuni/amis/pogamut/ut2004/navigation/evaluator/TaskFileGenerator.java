@@ -16,13 +16,8 @@
  */
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator;
 
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.RecordType;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.EvaluationTaskFactory;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.IEvaluationTask;
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapPathsBatchTaskCreator;
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapPathsEvaluationTask.PathType;
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.NavigationEvaluationBatchTaskCreator;
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.NavigationEvaluationTask;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -50,8 +45,8 @@ public class TaskFileGenerator {
                 "DM-1on1-Crash",
                 "DM-TrainingDay");
         
-        MapPathsBatchTaskCreator mapPathsBatchTask = new MapPathsBatchTaskCreator(3, MapPathsBatchTaskCreator.getAllMaps(), "navigation", "fwMap", statsPath + "/maps", Arrays.asList(PathType.values()), false);
-        myTasks.addAll(mapPathsBatchTask.createBatch());
+        //MapPathsBatchTaskCreator mapPathsBatchTask = new MapPathsBatchTaskCreator(3, MapPathsBatchTaskCreator.getAllMaps(), "navigation", "fwMap", statsPath + "/maps", Arrays.asList(PathType.values()), false);
+        //myTasks.addAll(mapPathsBatchTask.createBatch());
 
 //        MapPathsEvaluationTask taskMapEval = new MapPathsEvaluationTask("DM-1on1-Albatross", "navigation", "fwMap", "C:/Temp/Pogamut/mapStats", PathType.NO_JUMPS);
 //        myTasks.add(taskMapEval);

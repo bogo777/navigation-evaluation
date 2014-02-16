@@ -153,6 +153,7 @@ public class ServerRunner {
                 case DESTROYED:
                 case COMPLETED:
                     File task = handle.getTask();
+                    log.log(Level.INFO, "Tasks completed. Status: {0}", handle.getStatus());
                     tasks.remove(task);
                     finishedHandles.add(handle);
                     break;
@@ -171,7 +172,7 @@ public class ServerRunner {
      * @return 
      */
     private static boolean hasCapacityForMultiEvaluation() {
-        //return true;
+    //    return true;
         int threshold = 3;
         int available = Runtime.getRuntime().availableProcessors();
         return available >= threshold;

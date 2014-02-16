@@ -20,18 +20,11 @@ import cz.cuni.amis.pogamut.base.agent.state.level1.IAgentStateDown;
 import cz.cuni.amis.pogamut.ut2004.bot.impl.UT2004Bot;
 import cz.cuni.amis.pogamut.ut2004.bot.params.UT2004BotParameters;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.EvaluatingBot;
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.EvaluationTaskFactory;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.IEvaluationTask;
 import cz.cuni.amis.pogamut.ut2004.server.exception.UCCStartException;
 import cz.cuni.amis.pogamut.ut2004.utils.UCCWrapper;
-import cz.cuni.amis.pogamut.ut2004.utils.UCCWrapperConf;
 import cz.cuni.amis.pogamut.ut2004.utils.UT2004BotRunner;
 import cz.cuni.amis.utils.exception.PogamutException;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Evaluator of single {@link IEvaluationTask}. Starts its own UCC server and
@@ -39,39 +32,7 @@ import java.util.logging.Logger;
  *
  * @author Bogo
  */
-public class SingleTaskEvaluator {
-
-    private static final Logger log = Logger.getLogger("TaskEvaluator");
-
-    /**
-     * Main method. Accepts path to task file in args.
-     *
-     * @param args
-     */
-    public static void main(String args[]) {
-
-        log.setLevel(Level.ALL);
-        log.fine("Running SingleTaskEvaluator");
-        IEvaluationTask task = EvaluationTaskFactory.build(args);
-        log.fine("Task built from args");
-        SingleTaskEvaluator evaluator = new SingleTaskEvaluator();
-        int result = evaluator.execute(task);
-        System.exit(result);
-
-    }
-
-    /**
-     * Redirects out to save log in file.
-     *
-     * @param logPath
-     */
-    private static void setupLog(String logPath) {
-        try {
-            System.setOut(new PrintStream(logPath));
-        } catch (FileNotFoundException ex) {
-        } catch (IOException ex) {
-        }
-    }
+public class SingleTaskEvaluator extends SingleTaskEvaluatorBase {
 
     public SingleTaskEvaluator() {
     }
@@ -123,28 +84,5 @@ public class SingleTaskEvaluator {
             System.out.close();
             return status;
         }
-    }
-
-    /**
-     * Starts UCC server.
-     *
-     * @param mapName Map which start on server.
-     * @return Server wrapper.
-     */
-    public static UCCWrapper run(String mapName) {
-        log.fine("UCC server starting...");
-        UCCWrapperConf conf = new UCCWrapperConf();
-        conf.setUnrealHome(ServerRunner.unrealHome);
-        conf.setStartOnUnusedPort(true);
-        if (mapName.startsWith("DM")) {
-            conf.setGameType("BotDeathMatch");
-        } else if (mapName.startsWith("CTF")) {
-            conf.setGameType("BotCTFGame");
-        }
-        conf.setMapName(mapName);
-
-        UCCWrapper server = new UCCWrapper(conf);
-        log.fine("UCC server started.");
-        return server;
     }
 }

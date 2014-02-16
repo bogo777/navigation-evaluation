@@ -42,4 +42,8 @@ public abstract class EvaluationTask<T extends UT2004BotParameters, X extends Ev
     public Class<X> getBotClass() {
         return botClass;
     }
+    
+    public String getJarPath() {
+        return null;
+    }
 }

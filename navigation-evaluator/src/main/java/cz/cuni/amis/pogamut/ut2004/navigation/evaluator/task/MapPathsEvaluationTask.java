@@ -16,8 +16,8 @@
  */
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task;
 
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.MapPathsBot;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.MapPathsBotParameters;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.MapPathsBot;
 import java.io.File;
 import java.util.List;
 

@@ -67,4 +67,11 @@ public interface IEvaluationTask<T extends UT2004BotParameters, X extends Evalua
      */
     public String getFileName();
     
+    /**
+     * Gets path where jar with bot is located. Or null if bot is contained within evaluator jar.
+     * @return 
+     * 
+     */
+    public String getJarPath();
+    
 }

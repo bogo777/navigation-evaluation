@@ -146,7 +146,7 @@ public class PathContainer {
      *
      * @return Container is empty
      */
-    protected boolean isEmpty() {
+    public boolean isEmpty() {
         return paths.isEmpty() && tabooPaths.isEmpty();
     }
 
@@ -262,4 +262,10 @@ public class PathContainer {
         }
         return true;
     }
+
+    public void setWorld(IVisionWorldView world) {
+        this.world = world;
+    }
+    
+    
 }

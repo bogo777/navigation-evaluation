@@ -20,11 +20,12 @@ import cz.cuni.amis.pogamut.base.agent.navigation.IPathPlanner;
 import cz.cuni.amis.pogamut.base3d.worldview.object.ILocated;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.IUT2004Navigation;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.IUT2004PathExecutor;
+import cz.cuni.amis.pogamut.ut2004.agent.navigation.NavMeshNavigator;
+import cz.cuni.amis.pogamut.ut2004.agent.navigation.NavMeshRunner;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004GetBackToNavGraph;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004Navigation;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004PathExecutor;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004RunStraight;
-import cz.cuni.amis.pogamut.ut2004.agent.navigation.loquenavigator.LoqueNavigator;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.navmesh.NavMesh;
 import cz.cuni.amis.pogamut.ut2004.bot.impl.UT2004Bot;
 import java.io.FileNotFoundException;
@@ -74,9 +75,18 @@ public class NavigationFactory {
      *
      */
     public static IUT2004Navigation getNavigation(EvaluatingBot bot, UT2004Bot utBot, String navigationType) {
+        
+//        utBot.getWorldView().addEventListener(LocationUpdate.class, new IWorldEventListener<LocationUpdate>() {
+//
+//            public void notify(LocationUpdate t) {
+//                utBot.getLocation();
+//            }
+//        });
+        
         IUT2004PathExecutor pathExecutor = new UT2004PathExecutor<ILocated>(
                 utBot, bot.getInfo(), bot.getMove(),
-                new LoqueNavigator<ILocated>(utBot, bot.getInfo(), bot.getMove(), utBot.getLog()),
+                //TODO: Switch runners by parameter. For testing new runner.
+                new NavMeshNavigator<ILocated>(utBot, bot.getInfo(), bot.getMove(), new NavMeshRunner(utBot, bot.getInfo(), bot.getMove(), utBot.getLog()), utBot.getLog()),
                 utBot.getLog());
 
         UT2004GetBackToNavGraph getBackToNavGraph = new UT2004GetBackToNavGraph(utBot, bot.getInfo(), bot.getMove());

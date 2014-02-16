@@ -1,0 +1,11 @@
+<cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.NavigationEvaluationTask>
+  <paramsClass>cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.BotNavigationParameters</paramsClass>
+  <botClass>cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.NavigationEvaluatingBot</botClass>
+  <navigation>navigation</navigation>
+  <pathPlanner>navMesh</pathPlanner>
+  <mapName>DM-TrainingDay</mapName>
+  <onlyRelevantPaths>true</onlyRelevantPaths>
+  <resultBasePath>C:/temp/Pogamut/stats</resultBasePath>
+  <recordType>NONE</recordType>
+  <limit>30</limit>
+</cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.NavigationEvaluationTask>

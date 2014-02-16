@@ -75,7 +75,7 @@ public class EvaluatorHandle {
             command.add("-Xrunjdwp:transport=dt_socket,server=y,address=8888,suspend=y");
         }
 
-        command.add(SingleTaskEvaluator.class.getName());
+        command.add(SingleNavigationTaskEvaluator.class.getName());
         command.add(task.getAbsolutePath());
 
         ProcessExecutionConfig config = new ProcessExecutionConfig();

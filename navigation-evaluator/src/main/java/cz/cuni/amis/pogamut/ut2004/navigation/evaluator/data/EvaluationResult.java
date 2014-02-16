@@ -254,4 +254,10 @@ public class EvaluationResult {
     public int getProcessedCount() {
         return processedCount;
     } 
+
+    public void setLog(LogCategory log) {
+        this.log = log;
+    }
+    
+    
 }

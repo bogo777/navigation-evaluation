@@ -42,7 +42,7 @@ public class DirectRunner {
             if (task == null) {
                 break;
             } else {
-                SingleTaskEvaluator evaluator = new SingleTaskEvaluator();
+                SingleTaskEvaluator evaluator = new SingleNavigationTaskEvaluator();
                 int result = evaluator.execute(task);
                 if (result == 0) {
                     serverRunner.getTasks().remove(taskFile);

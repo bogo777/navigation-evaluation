@@ -16,8 +16,8 @@
  */
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data;
 
-import cz.cuni.amis.pogamut.base.utils.logging.LogCategory;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapPathsEvaluationTask;
+import cz.cuni.amis.pogamut.base.utils.logging.LogCategory;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapPathsEvaluationTask.PathType;
 import java.io.BufferedWriter;
 import java.io.File;

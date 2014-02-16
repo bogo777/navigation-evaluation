@@ -50,7 +50,8 @@ import java.util.logging.Level;
 
 /**
  * Bot for evaluating navigations. Initialized with navigation given by
- * parameters and performs evaluation on given map. Extended from original example archetype from Pogamut.
+ * parameters and performs evaluation on given map. Extended from original
+ * example archetype from Pogamut.
  *
  * @author Bogo
  */
@@ -67,8 +68,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
     private NavigationState state;
     private Date startDate;
     private EvaluationResult result;
-    
-    
+    public static final int PATH_RECORDS_LIMIT = 10;
 
     public NavigationEvaluatingBot() {
     }
@@ -77,11 +77,41 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
         return (BotNavigationParameters) bot.getParams();
     }
 
+    public ExtendedBotNavigationParameters getExtendedParams() {
+        if (!hasExtendedParams()) {
+            return null;
+        }
+        Object params = getParams();
+        if (params.getClass() == ExtendedBotNavigationParameters.class) {
+            return (ExtendedBotNavigationParameters) params;
+        } else {
+            return null;
+        }
+    }
+
+    public boolean hasExtendedParams() {
+        return getParams().isPathRecord();
+    }
+
+    public ExtendedBotNavigationParameters getNewExtendedParams() {
+        ExtendedBotNavigationParameters params = getExtendedParams();
+        if (params == null) {
+            params = new ExtendedBotNavigationParameters(getParams(), pathContainer, result);
+        } else {
+            params.setPathContainer(pathContainer);
+            params.setEvaluationResult(result);
+        }
+        params.getEvaluationResult().setLog(null);
+        params.getPathContainer().setWorld(null);
+        return params;
+    }
+
     /**
-     * Initializes the path finding from parameters with use of {@link NavigationFactory}.
-     * 
-     * @param bot 
-     * 
+     * Initializes the path finding from parameters with use of
+     * {@link NavigationFactory}.
+     *
+     * @param bot
+     *
      */
     @Override
     protected void initializePathFinding(UT2004Bot bot) {
@@ -126,10 +156,20 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
         // initialize taboo set where we store temporarily unavailable navpoints
         tabooNavPoints = new TabooSet<NavPoint>(bot);
 
-        pathContainer = new PathContainer(world);
-        NavigationFactory.initializePathContainer(pathContainer, this);
+        ExtendedBotNavigationParameters extendedParams = getExtendedParams();
+        if (extendedParams == null) {
 
-        result = new EvaluationResult(pathContainer.size(), info.game.getMapName(), log, getParams().getResultPath());
+            pathContainer = new PathContainer(world);
+            NavigationFactory.initializePathContainer(pathContainer, this);
+
+            result = new EvaluationResult(pathContainer.size(), info.game.getMapName(), log, getParams().getResultPath());
+        } else {
+            pathContainer = extendedParams.getPathContainer();
+            pathContainer.setWorld(world);
+            
+            result = extendedParams.getEvaluationResult();
+            result.setLog(log);
+        }
 
         state = NavigationState.NotMoving;
 
@@ -235,7 +275,6 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
             startDate = null;
             log.info(String.format("Completed %d/%d paths...", result.getProcessedCount(), result.getTotalPaths()));
             currentPath = getNextPath(currentPath.getEnd());
-
             state = NavigationState.NotMoving;
         }
         if (state == NavigationState.Failed || state == NavigationState.FailedOnWayToStart) {
@@ -375,6 +414,14 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
         if (path == null || result.getProcessedCount() >= getParams().getLimitForCompare()) {
             wrapUpEvaluation();
         }
+        if (getParams().isPathRecord()) {
+            ExtendedBotNavigationParameters params = getExtendedParams();
+            int iteration = params == null ? 1 : params.getIteration();
+            if (result.getProcessedCount() >= iteration * PATH_RECORDS_LIMIT) {
+                //Shutdown bot and restart ucc.
+                wrapUpEvaluation();
+            }
+        }
         return path;
     }
 
@@ -395,6 +442,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
         }
         result.exportAggregate();
         result.export();
+
         super.botShutdown();
     }
 }
