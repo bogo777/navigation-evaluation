@@ -43,6 +43,8 @@ public class PathContainer {
     IVisionWorldView world;
     private HashMap<WorldObjectId, Set<WorldObjectId>> paths;
     private HashMap<Path, Integer> tabooPaths;
+    
+    private Path currentTabooPath = null;
 
     /**
      * Create container for given worldview.
@@ -66,7 +68,11 @@ public class PathContainer {
             return null;
         }
         if (paths.isEmpty()) {
-            return MyCollections.getRandom(tabooPaths.keySet());
+            if(currentTabooPath != null) {
+                resetTabooPath();
+            }
+            currentTabooPath = MyCollections.getRandom(tabooPaths.keySet());
+            return currentTabooPath;
         }
         WorldObjectId start = MyCollections.getRandom(paths.keySet());
         Set<WorldObjectId> ends = paths.get(start);
@@ -83,6 +89,11 @@ public class PathContainer {
             return new Path((NavPoint) world.get(start), (NavPoint) world.get(end));
         }
         return null;
+    }
+
+    private void resetTabooPath() {
+        tabooPaths.remove(currentTabooPath);
+        currentTabooPath = null;
     }
 
     /**
@@ -147,15 +158,15 @@ public class PathContainer {
      * @return Container is empty
      */
     public boolean isEmpty() {
-        return paths.isEmpty() && tabooPaths.isEmpty();
+        return paths.isEmpty() && (tabooPaths.isEmpty() || (tabooPaths.size() == 1 && currentTabooPath != null));
     }
 
     /**
-     * Returns size of the container.
+     * Returns size of the container. Iterates through values of Map with paths. If sufficient, use isEmpty() instead.
      *
      * @return Number of paths in the container.
      */
-    protected int size() {
+    public int size() {
         if (isEmpty()) {
             return 0;
         } else {
@@ -163,7 +174,7 @@ public class PathContainer {
             for (Set<WorldObjectId> set : paths.values()) {
                 size += set.size();
             }
-            return size + tabooPaths.size();
+            return size + (currentTabooPath == null ? tabooPaths.size() : (tabooPaths.size() - 1));
         }
     }
 
@@ -251,6 +262,9 @@ public class PathContainer {
     }
 
     public boolean addTabooPath(Path path) {
+        if(currentTabooPath != null && !currentTabooPath.equals(path)) {
+            resetTabooPath();
+        }
         Integer retries = tabooPaths.get(path);
         if (retries == null) {
             tabooPaths.put(path, tabooRetryCount);

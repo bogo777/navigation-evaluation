@@ -31,7 +31,9 @@ import java.util.logging.Logger;
  * @author Bogo
  */
 public abstract class SingleTaskEvaluatorBase {
+
     protected static final Logger log = Logger.getLogger("TaskEvaluator");
+    private static final boolean REDIRECT_LOG = true;
 
     /**
      * Main method. Accepts path to task file in args.
@@ -74,7 +76,9 @@ public abstract class SingleTaskEvaluatorBase {
      */
     protected static void setupLog(String logPath) {
         try {
-            System.setOut(new PrintStream(logPath));
+            if (REDIRECT_LOG) {
+                System.setOut(new PrintStream(logPath));
+            }
         } catch (FileNotFoundException ex) {
         } catch (IOException ex) {
         }
@@ -87,5 +91,5 @@ public abstract class SingleTaskEvaluatorBase {
      * @return Execution result.
      */
     public abstract int execute(IEvaluationTask task);
-    
+
 }

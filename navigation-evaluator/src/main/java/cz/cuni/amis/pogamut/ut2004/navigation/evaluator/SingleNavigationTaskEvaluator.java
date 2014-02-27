@@ -92,12 +92,16 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
                     status = 0;
                     System.out.println("Bad termination of bot.");
                 }
+                if (server != null) {
+                    server.stop();
+                }
                 if (bot != null) {
                     System.out.println("Correct repeat finally..");
                     NavigationEvaluatingBot evalBot = (NavigationEvaluatingBot) bot.getController();
                     if (status == 0) {
                         ExtendedBotNavigationParameters paramsExt = evalBot.getNewExtendedParams();
                         System.out.println("Correct status.");
+                        System.out.printf("EVALUATION ITERATION COMPLETED - Processed paths: %d, Remaining paths: %d", paramsExt.getEvaluationResult().getProcessedCount(), paramsExt.getPathContainer().size());
                         if (paramsExt.getEvaluationResult().getProcessedCount() >= paramsExt.getLimitForCompare() || paramsExt.getPathContainer().isEmpty()) {
                             done = true;
                             continue;
@@ -105,9 +109,6 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
                         params = new ExtendedBotNavigationParameters((INavigationEvaluationTask) task, paramsExt.getPathContainer(), paramsExt.getEvaluationResult());
                         ((ExtendedBotNavigationParameters) params).setIteration(paramsExt.getIteration() + 1);
                     }
-                }
-                if (server != null) {
-                    server.stop();
                 }
                 if (status != 0) {
                     done = true;

@@ -17,8 +17,14 @@
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot;
 
 import com.google.inject.internal.cglib.core.CollectionUtils;
+import cz.cuni.amis.pogamut.base.communication.worldview.event.IWorldEventListener;
 import cz.cuni.amis.pogamut.base.communication.worldview.object.IWorldObjectEventListener;
+import cz.cuni.amis.pogamut.base.communication.worldview.object.WorldObjectId;
 import cz.cuni.amis.pogamut.base.communication.worldview.object.event.WorldObjectEvent;
+import cz.cuni.amis.pogamut.base.utils.math.DistanceUtils;
+import cz.cuni.amis.pogamut.base3d.worldview.object.Location;
+import cz.cuni.amis.pogamut.unreal.communication.messages.UnrealId;
+import cz.cuni.amis.pogamut.ut2004.agent.navigation.NavigationState;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.astar.UT2004AStar;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.floydwarshall.FloydWarshallMap;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.stuckdetector.UT2004DistanceStuckDetector;
@@ -29,9 +35,13 @@ import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.ConfigC
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.GameInfo;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.InitedMessage;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.LocationUpdate;
+import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPoint;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.Self;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.SelfMessage;
+import static cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.JumpInspectingBot.Phase.ToStart;
 import cz.cuni.amis.utils.collections.MyCollections;
+import cz.cuni.amis.utils.flag.FlagListener;
+import java.util.Map;
 import java.util.logging.Level;
 
 /**
@@ -40,33 +50,60 @@ import java.util.logging.Level;
  */
 public class JumpInspectingBot extends EvaluatingBot {
 
+    public enum Phase {
+
+        ToStart, OnStart, Running, Jumping, AfterJump, AtEnd
+    }
+
+    private IWorldEventListener<LocationUpdate> listener;
+
+    Phase phase = Phase.ToStart;
+
+    double jumpDistance = 800;
+
+    NavPoint startSpot = null;
+    NavPoint endSpot = null;
+    int step = 0;
+    boolean inEvaluation = false;
+    boolean jumpedAlready = false;
+
+    boolean inJump = false;
+
+    Location beforeJumpMax = null;
+    Location afterJumpMax = null;
+
+    Location beforeJumpMin = null;
+    Location afterJumpMin = null;
+
 //    public BotNavigationParameters getParams() {
 //        return (BotNavigationParameters) bot.getParams();
 //    }
+    @Override
+    protected void initializePathFinding(UT2004Bot bot) {
+        fwMap = new FloydWarshallMap(bot);
+        pathPlanner = NavigationFactory.getPathPlanner(this, "navMesh");
+        navigation = NavigationFactory.getNavigation(this, bot, "navigation");
 
-//    @Override
-//    protected void initializePathFinding(UT2004Bot bot) {
-//        fwMap = new FloydWarshallMap(bot);
-//        pathPlanner = NavigationFactory.getPathPlanner(this, getParams().getPathPlanner());
-//        navigation = NavigationFactory.getNavigation(this, bot, getParams().getNavigation());
-//
-//        aStar = new UT2004AStar(bot);
-//        pathExecutor = navigation.getPathExecutor();
-//
-//        // add stuck detectors that watch over the path-following, if it (heuristicly) finds out that the bot has stuck somewhere,
-//        // it reports an appropriate path event and the path executor will stop following the path which in turn allows 
-//        // us to issue another follow-path command in the right time
-//        pathExecutor.addStuckDetector(new UT2004TimeStuckDetector(bot, 3000, 100000)); // if the bot does not move for 3 seconds, considered that it is stuck
-//        pathExecutor.addStuckDetector(new UT2004PositionStuckDetector(bot));           // watch over the position history of the bot, if the bot does not move sufficiently enough, consider that it is stuck
-//        pathExecutor.addStuckDetector(new UT2004DistanceStuckDetector(bot));           // watch over distances to target
-//
-//        getBackToNavGraph = navigation.getBackToNavGraph();
-//        runStraight = navigation.getRunStraight();
-//    }
-    
-    
+        aStar = new UT2004AStar(bot);
+        pathExecutor = navigation.getPathExecutor();
+
+        // add stuck detectors that watch over the path-following, if it (heuristicly) finds out that the bot has stuck somewhere,
+        // it reports an appropriate path event and the path executor will stop following the path which in turn allows 
+        // us to issue another follow-path command in the right time
+        pathExecutor.addStuckDetector(new UT2004TimeStuckDetector(bot, 3000, 100000)); // if the bot does not move for 3 seconds, considered that it is stuck
+        pathExecutor.addStuckDetector(new UT2004PositionStuckDetector(bot));           // watch over the position history of the bot, if the bot does not move sufficiently enough, consider that it is stuck
+        pathExecutor.addStuckDetector(new UT2004DistanceStuckDetector(bot));           // watch over distances to target
+
+        getBackToNavGraph = navigation.getBackToNavGraph();
+        runStraight = navigation.getRunStraight();
+    }
+
     double zOnTheGround = 0;
     int jumpCount = 0;
+    
+    double maxJump = Double.NEGATIVE_INFINITY;
+
+    boolean turned = false;
 
     @Override
     public void beforeFirstLogic() {
@@ -77,49 +114,157 @@ public class JumpInspectingBot extends EvaluatingBot {
     @Override
     public void botInitialized(GameInfo gameInfo, ConfigChange currentConfig, InitedMessage init) {
         super.botInitialized(gameInfo, currentConfig, init);
-        bot.getLog().setLevel(Level.ALL);
+        bot.getLog().setLevel(Level.WARNING);
 
-        world.addObjectListener(LocationUpdate.class, new IWorldObjectEventListener<LocationUpdate, WorldObjectEvent<LocationUpdate>>() {
-            public void notify(WorldObjectEvent<LocationUpdate> t) {
-                log.warning("Accepted location update.");
-                LocationUpdate locationUpdate = t.getObject();
-                log.warning("LOCATION UPDATE - L: {0}, V: {1}, R: {2}, SimTime: {3}", new Object[]{locationUpdate.getLoc(), locationUpdate.getVel(), locationUpdate.getRot(), locationUpdate.getSimTime()});
-//                Self self = bot.getSelf();
-//                if (self == null) {
-//                    return;
-//                }
-//                Self newSelf = new SelfMessage(self.getId(), self.getBotId(), self.getName(), self.isVehicle(),
-//                        locationUpdate.getLoc(), locationUpdate.getVel(), locationUpdate.getRot(), self.getTeam(),
-//                        self.getWeapon(), self.isShooting(), self.getHealth(), self.getPrimaryAmmo(),
-//                        self.getSecondaryAmmo(), self.getAdrenaline(), self.getArmor(), self.getSmallArmor(),
-//                        self.isAltFiring(), self.isCrouched(), self.isWalking(), self.getFloorLocation(),
-//                        self.getFloorNormal(), self.getCombo(), self.getUDamageTime(), self.getAction(),
-//                        self.getEmotLeft(), self.getEmotCenter(), self.getEmotRight(), self.getBubble(),
-//                        self.getAnim());
-                
-                //world.notifyImmediately(newSelf);
+        move.getLog().setLevel(Level.WARNING);
+
+        listener = new IWorldEventListener<LocationUpdate>() {
+
+            public void notify(LocationUpdate t) {
+                //log.warning("Accepted location update.");
+                LocationUpdate locationUpdate = t;
+                //log.warning("LOCATION UPDATE - L: {0}, V: {1}, R: {2}, SimTime: {3}", new Object[]{locationUpdate.getLoc(), locationUpdate.getVel(), locationUpdate.getRot(), locationUpdate.getSimTime()});
+
+                Phase lastPhase = phase;
+                switch (lastPhase) {
+                    case Running:
+                        if (inJump) {
+                            log.warning("LOCATION UPDATE - L: {0}, V: {1}, R: {2}, SimTime: {3}", new Object[]{locationUpdate.getLoc(), locationUpdate.getVel(), locationUpdate.getRot(), locationUpdate.getSimTime()});
+                        }
+                        if (inJump && !isOnTheGround(locationUpdate.getLoc())) {
+                            phase = Phase.Jumping;
+                        }
+                        break;
+                    case Jumping:
+                        if(locationUpdate.getLoc().z > maxJump) {
+                            maxJump = locationUpdate.getLoc().z;
+                        }
+                        log.warning("LOCATION UPDATE - L: {0}, V: {1}, R: {2}, SimTime: {3}", new Object[]{locationUpdate.getLoc(), locationUpdate.getVel(), locationUpdate.getRot(), locationUpdate.getSimTime()});
+                        if (isOnTheGround(locationUpdate.getLoc())) {
+                            phase = Phase.AfterJump;
+                            inJump = false;
+                        }
+                }
+
+                switch (phase) {
+                    case Running:
+                        beforeJumpMax = locationUpdate.getLoc();
+                        break;
+                    case Jumping:
+                        if (lastPhase == Phase.Running) {
+                            beforeJumpMin = locationUpdate.getLoc();
+                        }
+
+                        afterJumpMin = locationUpdate.getLoc();
+                        break;
+                    case AfterJump:
+
+                        if (lastPhase == Phase.Jumping) {
+                            afterJumpMax = locationUpdate.getLoc();
+                            //evaluate
+
+                            double jumpLengthMax = afterJumpMax.getDistance2D(beforeJumpMax);
+                            double jumpLengthMin = afterJumpMin.getDistance2D(beforeJumpMin);
+
+                            log.warning("JUMP FINISHED: MAX: " + jumpLengthMax + " MIN: " + jumpLengthMin);
+                            log.warning("Before MAX loc: " + beforeJumpMax);
+                            log.warning("After MAX loc: " + afterJumpMax);
+                            log.warning("Before MIN loc: " + beforeJumpMin);
+                            log.warning("After MIN loc: " + afterJumpMin);
+                        }
+                }
+
+            }
+        };
+
+        world.addEventListener(LocationUpdate.class, listener);
+
+        navigation.addStrongNavigationListener(new FlagListener<cz.cuni.amis.pogamut.ut2004.agent.navigation.NavigationState>() {
+
+            public void flagChanged(NavigationState changedValue) {
+                if (changedValue == NavigationState.TARGET_REACHED) {
+                    if (phase == Phase.ToStart && bot.getLocation().getDistance2D(startSpot.getLocation()) < 100) {
+                        phase = Phase.OnStart;
+                    }
+                }
             }
         });
+
+        String firstSpotId = "DM-1on1-Roughinery.InventorySpot127";
+        String secondSpotId = "DM-1on1-Roughinery.InventorySpot123";
+
+        startSpot = navPoints.getNavPoint(UnrealId.get(firstSpotId));
+        endSpot = navPoints.getNavPoint(UnrealId.get(secondSpotId));
 
     }
 
     @Override
     public void logic() {
         // mark that another logic iteration has began
-        log.info("--- Logic iteration ---");
+        //log.info("--- Logic iteration ---");
 
-        if(!navigation.isNavigating()) {
-            navigation.navigate(MyCollections.getRandom(navPoints.getNavPoints().values()));
+        if (!navigation.isNavigating()) {
+
+            switch (phase) {
+                case ToStart:
+                    navigation.navigate(startSpot);
+                    break;
+                case OnStart:
+                    zOnTheGround = bot.getLocation().z;
+                    move.turnTo(endSpot);
+                    navigation.navigate(endSpot);
+                    phase = Phase.Running;
+                    break;
+                default:
+                    navigation.navigate(startSpot);
+                    phase = Phase.ToStart;
+                    break;
+            }
+        }
+
+        if (phase == Phase.Running && isOnTheGround(bot.getLocation()) && bot.getLocation().getDistance2D(startSpot.getLocation()) > jumpDistance) {
+            move.jump();
+            log.warning("JUMP INITIATED");
+            inJump = true;
             ++jumpCount;
         }
-        
-//        //Standing jump inpection
-//        if (Math.abs(zOnTheGround - bot.getLocation().z) < 10) {
+
+//            NavPoint current = DistanceUtils.getNearest(navPoints.getNavPoints().values(), bot.getLocation());
+//
+//            if (step == 0) {
+//                if (current == null) {
+//                    //Do nothing
+//                } else if (current.equals(startSpot)) {
+//                    inEvaluation = true;
+//                    move.turnTo(endSpot);
+//                } else {
+//                    move.turnTo(startSpot);
+//                }
+//
+//            } else if (step > 3) {
+//                if (current == null) {
+//                    navigation.navigate(startSpot);
+//                } else if (current.equals(startSpot)) {
+//                    navigation.navigate(endSpot);
+//                } else {
+//                    navigation.navigate(startSpot);
+//                }
+//
+//            }
+//
+//        }
+//
+//        ++step;
+//
+//        if (inEvaluation && step > 8 && isOnTheGround() && bot.getVelocity().size() > 400 && !jumpedAlready) {
 //            log.warning("Sending JUMP command.");
+//            log.log(Level.WARNING, "INFO: Velocity: {0}\n\tPosition: {1}", new Object[]{bot.getVelocity().size(), bot.getLocation()});
 //            move.jump();
+//            jumpedAlready = true;
 //            ++jumpCount;
 //        }
-        if (jumpCount > 5) {
+        if (jumpCount > 30) {
+            log.warning("MAX JUMP: " + maxJump);
             log.info("No more jumps to jump, we are finished...");
             isCompleted = true;
             new Runnable() {
@@ -129,5 +274,9 @@ public class JumpInspectingBot extends EvaluatingBot {
             }.run();
         }
 
+    }
+
+    private boolean isOnTheGround(Location location) {
+        return location.z <= zOnTheGround;
     }
 }

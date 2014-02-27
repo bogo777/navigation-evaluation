@@ -26,10 +26,11 @@ import java.util.List;
  * @author Bogo
  */
 public class NavigationEvaluationBatchTaskCreator {
-    
+
     /**
-     * Creates batch of tasks. Generates task for every map in {@code mapNames} with given parameters.
-     * 
+     * Creates batch of tasks. Generates task for every map in {@code mapNames}
+     * with given parameters.
+     *
      * @param navigation
      * @param pathPlanner
      * @param mapNames
@@ -37,15 +38,27 @@ public class NavigationEvaluationBatchTaskCreator {
      * @param limit
      * @param resultPath
      * @param recordType
-     * @return 
+     * @return
      */
     public static List<NavigationEvaluationTask> createBatch(String navigation, String pathPlanner, List<String> mapNames, boolean onlyRelevantPaths, int limit, String resultPath, RecordType recordType) {
-        List<NavigationEvaluationTask> tasks = new LinkedList<NavigationEvaluationTask>();        
-        
+        List<NavigationEvaluationTask> tasks = new LinkedList<NavigationEvaluationTask>();
+
         for (String map : mapNames) {
             tasks.add(new NavigationEvaluationTask(navigation, pathPlanner, map, onlyRelevantPaths, limit, resultPath, recordType));
         }
-        
+
+        return tasks;
+    }
+
+    public static List<NavigationEvaluationTask> createBatch(List<String> navigations, List<String> pathPlanners, String mapName, boolean onlyRelevantPaths, int limit, String resultPath, RecordType recordType) {
+        List<NavigationEvaluationTask> tasks = new LinkedList<NavigationEvaluationTask>();
+
+        for (String navigation : navigations) {
+            for (String pathPlanner : pathPlanners) {
+                tasks.add(new NavigationEvaluationTask(navigation, pathPlanner, mapName, onlyRelevantPaths, limit, resultPath, recordType));
+            }
+        }
+
         return tasks;
     }
 }

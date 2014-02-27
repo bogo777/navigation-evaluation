@@ -36,7 +36,7 @@ public class JumpInspectingTask extends EvaluationTask<UT2004BotParameters, Jump
     }
     
     public String getMapName() {
-        return "DM-TrainingDay";
+        return "DM-1on1-Roughinery";
     }
 
     public UT2004BotParameters getBotParams() {

@@ -54,7 +54,7 @@ public class SingleTaskEvaluator extends SingleTaskEvaluatorBase {
             server = run(task.getMapName());
             System.setProperty("pogamut.ut2004.server.port", Integer.toString(server.getControlPort()));
             UT2004BotRunner<UT2004Bot, UT2004BotParameters> botRunner = new UT2004BotRunner<UT2004Bot, UT2004BotParameters>(task.getBotClass(), "EvaluatingBot", server.getHost(), server.getBotPort());
-            botRunner.setLogLevel(Level.FINE);
+            botRunner.setLogLevel(Level.WARNING);
             log.fine("Starting evaluation bot.");
             bot = botRunner.startAgents(task.getBotParams()).get(0);
             bot.awaitState(IAgentStateDown.class, stopTimeout);
@@ -83,7 +83,8 @@ public class SingleTaskEvaluator extends SingleTaskEvaluatorBase {
                 server.stop();
             }
             System.out.close();
-            return status;
+            
         }
+        return status;
     }
 }

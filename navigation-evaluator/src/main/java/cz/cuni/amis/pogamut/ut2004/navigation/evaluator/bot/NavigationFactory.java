@@ -22,12 +22,21 @@ import cz.cuni.amis.pogamut.ut2004.agent.navigation.IUT2004Navigation;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.IUT2004PathExecutor;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.NavMeshNavigator;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.NavMeshRunner;
+import cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004AcceleratedPathExecutor;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004GetBackToNavGraph;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004Navigation;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004PathExecutor;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004RunStraight;
+import cz.cuni.amis.pogamut.ut2004.agent.navigation.loquenavigator.KefikRunner;
+import cz.cuni.amis.pogamut.ut2004.agent.navigation.loquenavigator.LoqueNavigator;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.navmesh.NavMesh;
+import cz.cuni.amis.pogamut.ut2004.agent.navigation.stuckdetector.MyUT2004DistanceStuckDetector;
+import cz.cuni.amis.pogamut.ut2004.agent.navigation.stuckdetector.MyUT2004PositionStuckDetector;
+import cz.cuni.amis.pogamut.ut2004.agent.navigation.stuckdetector.UT2004DistanceStuckDetector;
+import cz.cuni.amis.pogamut.ut2004.agent.navigation.stuckdetector.UT2004PositionStuckDetector;
+import cz.cuni.amis.pogamut.ut2004.agent.navigation.stuckdetector.UT2004TimeStuckDetector;
 import cz.cuni.amis.pogamut.ut2004.bot.impl.UT2004Bot;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -71,24 +80,46 @@ public class NavigationFactory {
      * Get {@link IUT2004Navigation} specified in params for given bot .
      *
      * @param bot
+     * @param utBot
+     * @param navigationType
      * @return
      *
      */
     public static IUT2004Navigation getNavigation(EvaluatingBot bot, UT2004Bot utBot, String navigationType) {
-        
-//        utBot.getWorldView().addEventListener(LocationUpdate.class, new IWorldEventListener<LocationUpdate>() {
-//
-//            public void notify(LocationUpdate t) {
-//                utBot.getLocation();
-//            }
-//        });
-        
-        IUT2004PathExecutor pathExecutor = new UT2004PathExecutor<ILocated>(
-                utBot, bot.getInfo(), bot.getMove(),
-                //TODO: Switch runners by parameter. For testing new runner.
-                new NavMeshNavigator<ILocated>(utBot, bot.getInfo(), bot.getMove(), new NavMeshRunner(utBot, bot.getInfo(), bot.getMove(), utBot.getLog()), utBot.getLog()),
-                utBot.getLog());
 
+        IUT2004PathExecutor pathExecutor;
+        if (navigationType.equals("acc")) {
+
+            pathExecutor = new UT2004AcceleratedPathExecutor<ILocated>(
+                    utBot, bot.getInfo(), bot.getMove(),
+                    //TODO: Switch runners by parameter. For testing new runner.
+                    new LoqueNavigator<ILocated>(utBot, bot.getInfo(), bot.getMove(), new KefikRunner(utBot, bot.getInfo(), bot.getMove(), utBot.getLog()), utBot.getLog()),
+                    utBot.getLog());
+    		pathExecutor.addStuckDetector(new UT2004TimeStuckDetector(utBot, 3000, 100000));
+    		// if the bot does not move for 3 seconds, considered that it is stuck
+    		pathExecutor.addStuckDetector(new MyUT2004PositionStuckDetector(utBot));
+    		// watch over the position history of the bot, if the bot does not move
+    		// sufficiently enough, consider that it is stuck
+    		pathExecutor.addStuckDetector(new MyUT2004DistanceStuckDetector(utBot));
+    		// watch over distances to target
+
+        } else {
+            pathExecutor = new UT2004PathExecutor(utBot, bot.getInfo(), bot.getMove(),
+                    new LoqueNavigator<ILocated>(utBot, bot.getInfo(), bot.getMove(), new KefikRunner(utBot, bot.getInfo(), bot.getMove(), utBot.getLog()), utBot.getLog()),
+                    utBot.getLog());
+    		// add stuck detectors that watch over the path-following, if it
+    		// (heuristicly) finds out that the bot has stuck somewhere,
+    		// it reports an appropriate path event and the path executor will stop
+    		// following the path which in turn allows
+    		// us to issue another follow-path command in the right time
+    		pathExecutor.addStuckDetector(new UT2004TimeStuckDetector(utBot, 3000, 100000));
+    		// if the bot does not move for 3 seconds, considered that it is stuck
+    		pathExecutor.addStuckDetector(new UT2004PositionStuckDetector(utBot));
+    		// watch over the position history of the bot, if the bot does not move
+    		// sufficiently enough, consider that it is stuck
+    		pathExecutor.addStuckDetector(new UT2004DistanceStuckDetector(utBot));
+    		// watch over distances to target
+        }
         UT2004GetBackToNavGraph getBackToNavGraph = new UT2004GetBackToNavGraph(utBot, bot.getInfo(), bot.getMove());
         UT2004RunStraight runStraight = new UT2004RunStraight(utBot, bot.getInfo(), bot.getMove());
         return new UT2004Navigation(utBot, pathExecutor, bot.getFwMap(), getBackToNavGraph, runStraight);
@@ -96,9 +127,9 @@ public class NavigationFactory {
 
     /**
      * Initializes the path container.
-     * 
+     *
      * @param pathContainer
-     * @param bot 
+     * @param bot
      */
     static void initializePathContainer(PathContainer pathContainer, NavigationEvaluatingBot bot) {
         BotNavigationParameters params = bot.getParams();
@@ -109,8 +140,6 @@ public class NavigationFactory {
         } else {
             pathContainer.build(bot.getParams().getLimit());
         }
-
-
 
     }
 }

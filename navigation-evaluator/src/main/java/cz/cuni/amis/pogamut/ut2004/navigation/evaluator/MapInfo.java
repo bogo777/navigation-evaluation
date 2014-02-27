@@ -74,7 +74,7 @@ public class MapInfo {
         "DM-1on1-Irondust",
         "DM-1on1-Mixer",
         "DM-1on1-Roughinery",
-        "DM-1on1-Serpen-tine",
+        "DM-1on1-Serpentine",
         "DM-1on1-Spirit",
         "DM-1on1-Squader",
         "DM-1on1-Trite",

@@ -20,6 +20,8 @@ import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.RecordType;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.EvaluationTaskFactory;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.IEvaluationTask;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.JumpInspectingTask;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapPathsBatchTaskCreator;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapPathsEvaluationTask.PathType;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.NavigationEvaluationBatchTaskCreator;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -32,7 +34,7 @@ import java.util.List;
  */
 public class TaskFileGenerator {
 
-    public static String statsPath = true || System.getProperty("os.name").toLowerCase().contains("linux") ? "/home/bohuslav_machac/evaluation/stats" : "C:/Temp/Pogamut/stats";
+    public static String statsPath = System.getProperty("os.name").toLowerCase().contains("linux") ? "/home/bohuslav_machac/evaluation/stats" : "C:/Temp/Pogamut/stats";
 
     public static void main(String args[]) {
 
@@ -49,8 +51,11 @@ public class TaskFileGenerator {
     //            ,"DM-TrainingDay"
                 );
         
-        //MapPathsBatchTaskCreator mapPathsBatchTask = new MapPathsBatchTaskCreator(3, MapPathsBatchTaskCreator.getAllMaps(), "navigation", "fwMap", statsPath + "/maps", Arrays.asList(PathType.values()), false);
-        //myTasks.addAll(mapPathsBatchTask.createBatch());
+        MapPathsBatchTaskCreator mapPathsBatchTask = new MapPathsBatchTaskCreator(4, Arrays.asList("DM-1on1-Serpentine"), "navigation", "fwMap", statsPath + "/maps2502", Arrays.asList(PathType.values()), false);
+        myTasks.addAll(mapPathsBatchTask.createBatch());
+        
+        MapPathsBatchTaskCreator mapPathsBatchTask2 = new MapPathsBatchTaskCreator(5, Arrays.asList("DM-1on1-Serpentine"), "navigation", "fwMap", statsPath + "/maps2502", Arrays.asList(PathType.values()), true);
+        myTasks.addAll(mapPathsBatchTask2.createBatch());
 
 //        MapPathsEvaluationTask taskMapEval = new MapPathsEvaluationTask("DM-1on1-Albatross", "navigation", "fwMap", "C:/Temp/Pogamut/mapStats", PathType.NO_JUMPS);
 //        myTasks.add(taskMapEval);
@@ -64,7 +69,9 @@ public class TaskFileGenerator {
 //        myTasks.add(taskDMCrash);
 
 
-        myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("navigation", "fwMap", maps, true, -1, statsPath, RecordType.PATH_FAILED));
+        //myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("navigation", "fwMap", maps, true, -1, statsPath, RecordType.PATH_FAILED));
+        
+        //myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch(Arrays.asList("navigation", "acc"), Arrays.asList("fwMap", "navMesh"), "CTF-1on1-Joust", true, -1, statsPath, RecordType.PATH_FAILED));
 
 //        XStream xstream = new XStream();
 //        xstream.from
@@ -78,7 +85,7 @@ public class TaskFileGenerator {
 //        myTasks.add(jumpTask);
 
         for (IEvaluationTask task : myTasks) {
-            EvaluationTaskFactory.toXml(task, "C:/Temp/Pogamut/160214_long/");
+            EvaluationTaskFactory.toXml(task, "C:/Temp/Pogamut/250214_map/");
         }
     }
 }
