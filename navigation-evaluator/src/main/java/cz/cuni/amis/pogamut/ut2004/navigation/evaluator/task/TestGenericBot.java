@@ -44,5 +44,9 @@ public class TestGenericBot<T extends UT2004BotParameters, X extends EvaluatingB
     public String getFileName() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
+
+    public String getResultPath() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
     
 }

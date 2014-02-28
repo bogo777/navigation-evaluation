@@ -20,11 +20,14 @@ import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.EvaluationTaskFacto
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.IEvaluationTask;
 import cz.cuni.amis.pogamut.ut2004.utils.UCCWrapper;
 import cz.cuni.amis.pogamut.ut2004.utils.UCCWrapperConf;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.commons.io.FileUtils;
+import org.zeroturnaround.zip.ZipUtil;
 
 /**
  *
@@ -74,7 +77,7 @@ public abstract class SingleTaskEvaluatorBase {
      *
      * @param logPath
      */
-    protected static void setupLog(String logPath) {
+    protected void setupLog(String logPath) {
         try {
             if (REDIRECT_LOG) {
                 System.setOut(new PrintStream(logPath));
@@ -91,5 +94,20 @@ public abstract class SingleTaskEvaluatorBase {
      * @return Execution result.
      */
     public abstract int execute(IEvaluationTask task);
+
+    protected void processResult(IEvaluationTask task) {
+        String resultPath = task.getResultPath();
+        if (ServerRunner.doCompress()) {
+            String zipName = resultPath.substring(0, resultPath.length() - 2) + ".zip";
+            ZipUtil.pack(new File(resultPath), new File(zipName));
+            if (ServerRunner.doDelete()) {
+                try {
+                    FileUtils.deleteDirectory(new File(resultPath));
+                } catch (IOException ex) {
+                    Logger.getLogger(SingleTaskEvaluatorBase.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }
+    }
 
 }

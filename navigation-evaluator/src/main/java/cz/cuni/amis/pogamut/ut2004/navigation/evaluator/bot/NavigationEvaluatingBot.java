@@ -25,6 +25,7 @@ import cz.cuni.amis.pogamut.base.agent.navigation.IPathFuture;
 import cz.cuni.amis.pogamut.base.agent.navigation.PathExecutorState;
 import cz.cuni.amis.pogamut.base.communication.worldview.event.IWorldEventListener;
 import cz.cuni.amis.pogamut.base3d.worldview.object.ILocated;
+import cz.cuni.amis.pogamut.base3d.worldview.object.Location;
 import cz.cuni.amis.pogamut.unreal.communication.messages.UnrealId;
 import cz.cuni.amis.pogamut.ut2004.agent.module.utils.TabooSet;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.astar.UT2004AStar;
@@ -43,6 +44,7 @@ import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPoin
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.Self;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.EvaluationResult;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.PathResult;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.PathResult.ResultType;
 import cz.cuni.amis.pogamut.ut2004.utils.UT2004BotRunner;
 import cz.cuni.amis.utils.exception.PogamutException;
 import cz.cuni.amis.utils.flag.FlagListener;
@@ -67,12 +69,13 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
 	private NavigationState state;
 	private Date startDate;
 	private EvaluationResult result;
-	public static final int PATH_RECORDS_LIMIT = 250;
+	public static final int PATH_RECORDS_LIMIT = 100;
 
 	private boolean waitForRecordStart = false;
 	private IPathFuture<ILocated> waitingPath = null;
 
 	private boolean failedToBuildPath = false;
+        private boolean failedInNavigate = false;
 
 	public NavigationEvaluatingBot() {
 	}
@@ -144,6 +147,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
 	 * The bot is initialized in the environment - a physical representation of
 	 * the bot is present in the game.
 	 * 
+         * @param gameInfo
 	 * @param config
 	 *            information about configuration
 	 * @param init
@@ -222,10 +226,12 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
 	 * The bot is initialized in the environment - a physical representation of
 	 * the bot is present in the game.
 	 * 
+         * @param gameInfo
 	 * @param config
 	 *            information about configuration
 	 * @param init
 	 *            information about configuration
+         * @param self
 	 */
 	@Override
 	public void botFirstSpawn(GameInfo gameInfo, ConfigChange config, InitedMessage init, Self self) {
@@ -282,6 +288,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
 				// Do nothing
 				if(!navigation.isNavigating()) {
 					state = NavigationState.Failed;
+                                        failedInNavigate = true;
 				}
 				log.info("Navigation in progress...");
 				return;
@@ -296,6 +303,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
 				// Do nothing
 				if(!navigation.isNavigating()) {
 					state = NavigationState.FailedOnWayToStart;
+                                        failedInNavigate = true;
 				}
 				log.info("Navigating to start in progress...");
 				return;
@@ -319,22 +327,28 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
 			// Write failed report and find new path -> through NotMoving
 			log.info("Navigation failed!");
 
+                        NavPoint nearestNavPoint = info.getNearestNavPoint();
+                        Location botLocation = info.getLocation();
+                        
 			if (state == NavigationState.Failed) {
 				if (getParams().isPathRecord()) {
 					result.stopRecording(act, currentPath, false);
 				}
 				sendMessageToGame("Path navigating failed!");
-				result.addResult(currentPath, failedToBuildPath ? PathResult.ResultType.NotBuilt : PathResult.ResultType.Failed, startDate == null ? 0
-						: (new Date()).getTime() - startDate.getTime());
+                                ResultType type = failedToBuildPath ? ResultType.NotBuilt : failedInNavigate ? ResultType.FailedInNavigate : ResultType.Failed;
+				result.addResult(currentPath, type, startDate == null ? 0
+						: (new Date()).getTime() - startDate.getTime(), botLocation, nearestNavPoint);
 			} else {
 				if (!pathContainer.addTabooPath(currentPath)) {
 					sendMessageToGame("Path navigating failed!");
-					result.addResult(currentPath, failedToBuildPath ? PathResult.ResultType.NotBuilt : PathResult.ResultType.Failed, 0);
+                                        ResultType type = failedInNavigate ? ResultType.FailedToStartInNavigate : ResultType.FailedToStart;
+					result.addResult(currentPath, type, 0, botLocation, nearestNavPoint);
 				}
 			}
 			failedToBuildPath = false;
+                        failedInNavigate = false;
 			startDate = null;
-			currentPath = getNextPath(info.getNearestNavPoint());
+			currentPath = getNextPath(nearestNavPoint);
 			state = NavigationState.NotMoving;
 		}
 

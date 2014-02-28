@@ -16,6 +16,8 @@
  */
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data;
 
+import cz.cuni.amis.pogamut.base3d.worldview.object.Location;
+import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPoint;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.Path;
 
 /**
@@ -24,34 +26,44 @@ import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.Path;
  * @author Bogo
  */
 public class PathResult {
-    
+
     private Path path;
     private ResultType type;
     private long duration;
-    
+    private Location failedAt = null;
+    private NavPoint nearestNavPoint = null;
+
     public PathResult(Path path, ResultType type) {
         this(path, type, 0);
     }
-    
+
     public PathResult(Path path, ResultType type, long duration) {
         this.path = path;
         this.type = type;
         this.duration = duration;
     }
     
+    public PathResult(Path path, ResultType type, long duration, Location failedAt, NavPoint nearest) {
+        this(path, type, duration);
+        this.failedAt = failedAt;
+        this.nearestNavPoint = nearest;
+    }
+
     /**
      * Result types of evaluation.
      */
     public enum ResultType {
-        NotBuilt, Failed, Completed
+
+        NotBuilt, Failed, Completed, FailedToStart, FailedInNavigate, FailedToStartInNavigate
     }
-    
+
     /**
      * Create CSV entry about this result.
-     * @return 
+     *
+     * @return
      */
     public String export() {
-        return String.format("%s;%s;%s;%s;%d;%f;%d;%d", path.getId(), path.getStart().getId().getStringId(), path.getEnd().getId().getStringId(), type, duration, path.getLength(), path.getJumps(), path.getLifts());
+        return String.format("%s;%s;%s;%s;%d;%f;%d;%d;%s;%s", path.getId(), path.getStart().getId().getStringId(), path.getEnd().getId().getStringId(), type, duration, path.getLength(), path.getJumps(), path.getLifts(), failedAt == null ? "" : failedAt.toString(), nearestNavPoint == null ? "" : nearestNavPoint.getId().getStringId());
     }
-    
+
 }

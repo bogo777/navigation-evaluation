@@ -19,8 +19,10 @@ package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data;
 import cz.cuni.amis.pogamut.base.communication.command.IAct;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.Path;
 import cz.cuni.amis.pogamut.base.utils.logging.LogCategory;
+import cz.cuni.amis.pogamut.base3d.worldview.object.Location;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbcommands.Record;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbcommands.StopRecord;
+import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPoint;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.ServerRunner;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -43,6 +45,11 @@ public class EvaluationResult {
     private int failedCount = 0;
     private int notBuiltCount = 0;
     private int processedCount = 0;
+    
+    private int failedToStartCount = 0;
+    private int failedInNavigateCount = 0;
+    private int failedToStartInNavigateCount = 0;
+    
     private String resultPath;
 
     public EvaluationResult(int total, String map, LogCategory log, String resultPath) {
@@ -61,6 +68,25 @@ public class EvaluationResult {
      * @param duration Duration of navigation.
      */
     public void addResult(Path path, PathResult.ResultType type, long duration) {
+        updateCounters(type);
+        pathResults.add(new PathResult(path, type, duration));
+    }
+    
+    /**
+     * Adds result for single path.
+     *
+     * @param path Added path.
+     * @param type Result of evaluation.
+     * @param duration Duration of navigation.
+     * @param location Current bot location. (Failed only)
+     * @param nearestNavPoint Nearest NavPoint. (Failed only)
+     */
+    public void addResult(Path path, PathResult.ResultType type, long duration, Location location, NavPoint nearestNavPoint) {
+        updateCounters(type);
+        pathResults.add(new PathResult(path, type, duration, location, nearestNavPoint));
+    }
+    
+    private void updateCounters(PathResult.ResultType type) {
         ++processedCount;
         switch (type) {
             case Completed:
@@ -72,8 +98,18 @@ public class EvaluationResult {
             case Failed:
                 ++failedCount;
                 break;
+            case FailedToStart:
+                ++failedToStartCount;
+                break;
+            case FailedInNavigate:
+                ++failedInNavigateCount;
+                break;
+            case FailedToStartInNavigate:
+                ++failedToStartInNavigateCount;
+                break;
+            default:
+                throw new AssertionError(type.name());
         }
-        pathResults.add(new PathResult(path, type, duration));
     }
 
     /**
@@ -86,9 +122,9 @@ public class EvaluationResult {
             File resultFile = getResultFile("aggregate.csv");
             fstream = new FileWriter(resultFile);
             BufferedWriter out = new BufferedWriter(fstream);
-            out.write("Map;Total;Processes;Completed;Failed;NotBuilt");
+            out.write("Map;Total;Processes;Completed;Failed;NotBuilt;FailedToStart;FailedInNavigate;FailedToStartInNavigate");
             out.newLine();
-            out.write(String.format("%s;%d;%d;%d;%d;%d", mapName, totalPaths, processedCount, completedCount, failedCount, notBuiltCount));
+            out.write(String.format("%s;%d;%d;%d;%d;%d;%d;%d;%d", mapName, totalPaths, processedCount, completedCount, failedCount, notBuiltCount, failedToStartCount, failedInNavigateCount, failedToStartInNavigateCount));
             out.newLine();
             out.close();
         } catch (IOException ex) {
@@ -115,7 +151,7 @@ public class EvaluationResult {
             resultFile.getParentFile().mkdirs();
             fstream = new FileWriter(resultFile);
             BufferedWriter out = new BufferedWriter(fstream);
-            out.write("ID;From;To;Type;Duration;Length;Jumps;Lifts");
+            out.write("ID;From;To;Type;Duration;Length;Jumps;Lifts;Location;NavPoint");
             out.newLine();
             for (PathResult result : pathResults) {
                 out.write(result.export());

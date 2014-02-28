@@ -19,7 +19,6 @@ package cz.cuni.amis.pogamut.ut2004.navigation.evaluator;
 import cz.cuni.amis.pogamut.base.agent.state.level1.IAgentStateDown;
 import cz.cuni.amis.pogamut.ut2004.bot.impl.UT2004Bot;
 import cz.cuni.amis.pogamut.ut2004.bot.params.UT2004BotParameters;
-import static cz.cuni.amis.pogamut.ut2004.navigation.evaluator.SingleTaskEvaluatorBase.setupLog;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.EvaluatingBot;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.ExtendedBotNavigationParameters;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.NavigationEvaluatingBot;
@@ -31,12 +30,18 @@ import cz.cuni.amis.pogamut.ut2004.server.exception.UCCStartException;
 import cz.cuni.amis.pogamut.ut2004.utils.UCCWrapper;
 import cz.cuni.amis.pogamut.ut2004.utils.UT2004BotRunner;
 import cz.cuni.amis.utils.exception.PogamutException;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
+import org.zeroturnaround.zip.ZipUtil;
 
 /**
  *
  * @author Bogo
  */
 public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
+
+    private String currentLog = null;
 
     @Override
     public int execute(IEvaluationTask task) {
@@ -51,7 +56,8 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
         }
 
         //We will record single paths and restart ucc regularly...
-        setupLog(task.getLogPath());
+        int iteration = 0;
+
         int status = 0;
         UCCWrapper server = null;
         UT2004Bot bot = null;
@@ -60,6 +66,8 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
         UT2004BotParameters params = task.getBotParams();
         while (!done) {
             try {
+                setupLog(task.getLogPath(), iteration);
+                ++iteration;
                 server = run(task.getMapName());
                 System.setProperty("pogamut.ut2004.server.port", Integer.toString(server.getControlPort()));
                 UT2004BotRunner<UT2004Bot, UT2004BotParameters> botRunner = new UT2004BotRunner<UT2004Bot, UT2004BotParameters>(task.getBotClass(), "EvaluatingBot", server.getHost(), server.getBotPort());
@@ -117,6 +125,28 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
         }
 
         System.out.close();
+
+        processResult(task);
+
         return status;
     }
+
+    protected void setupLog(String logPath, int iteration) {
+        if (iteration != 0) {
+            System.out.close();
+            if (currentLog != null) {
+                File currentLogFile = new File(currentLog);
+                if (ServerRunner.doCompress()) {
+                    ZipUtil.packEntry(currentLogFile, new File(currentLog + ".zip"));
+                    currentLogFile.delete();
+                }
+            }
+        }
+        try {
+            currentLog = String.format("%s-%d.log", logPath.substring(0, logPath.length() - 4), iteration);
+            System.setOut(new PrintStream(currentLog));
+        } catch (FileNotFoundException ex) {
+        }
+    }
+
 }

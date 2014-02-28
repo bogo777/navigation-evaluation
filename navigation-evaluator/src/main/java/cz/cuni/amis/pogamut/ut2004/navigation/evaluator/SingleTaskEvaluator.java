@@ -85,6 +85,7 @@ public class SingleTaskEvaluator extends SingleTaskEvaluatorBase {
             System.out.close();
             
         }
+        processResult(task);
         return status;
     }
 }

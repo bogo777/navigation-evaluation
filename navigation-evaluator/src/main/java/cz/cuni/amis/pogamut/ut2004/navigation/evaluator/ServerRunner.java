@@ -36,10 +36,20 @@ import java.util.logging.SimpleFormatter;
  */
 public class ServerRunner {
 
+    public static final boolean isLab = true;
+
     //Platforms specific paths in one place in code for now.
-    public static String recordsPath = System.getProperty("os.name").toLowerCase().contains("linux") ? "/home/bohuslav_machac/UT2004-Dedicated-3369-Linux/Demos" : "C:/Games/UT/Demos";
     public static String executionDir = System.getProperty("os.name").toLowerCase().contains("linux") ? "/home/bohuslav_machac" : "C:/Temp/Pogamut";
-    public static String unrealHome = System.getProperty("os.name").toLowerCase().contains("linux") ? "/home/bohuslav_machac/UT2004-Dedicated-3369-Linux" : "C:/Games/UT";
+    public static String unrealHome = System.getProperty("os.name").toLowerCase().contains("linux") ? (isLab ? "/afs/ms/u/m/machacb/BIG/UT2004-Dedicated-3369-Linux" : "/home/bohuslav_machac/UT2004-Dedicated-3369-Linux") : "C:/Games/UT";
+    public static String recordsPath = unrealHome + "/Demos";
+    
+    public static boolean doCompress() {
+        return true;
+    }
+    
+    public static boolean doDelete() {
+        return true;
+    }
 
     public ServerRunner() {
         //TODO: Is this duplicating output?
@@ -49,15 +59,16 @@ public class ServerRunner {
         handler.setLevel(Level.ALL);
         log.addHandler(handler);
     }
-    
+
     private List<EvaluatorHandle> evaluations = new LinkedList<EvaluatorHandle>();
     private List<File> tasks;
     private static final Logger log = Logger.getLogger("ServerRunner");
 
     /**
-     * Initializes a list of {@link IEvaluationTask} represented in XML by XSTream serialization. Uses passed directory or current of omitted.
-     * 
-     * @param args 
+     * Initializes a list of {@link IEvaluationTask} represented in XML by
+     * XSTream serialization. Uses passed directory or current of omitted.
+     *
+     * @param args
      */
     public void initTasks(String[] args) {
         tasks = new ArrayList<File>();
@@ -77,12 +88,14 @@ public class ServerRunner {
 
     /**
      * Main method for ServerRunner. Evaluates task from given directory.
-     * 
+     *
      * @param args
-     * @throws PogamutException 
+     * @throws PogamutException
      */
     public static void main(String args[]) {
         ServerRunner runner = new ServerRunner();
+
+        runner.initRunner(args);
 
         runner.initTasks(args);
 
@@ -101,7 +114,8 @@ public class ServerRunner {
     }
 
     /**
-     * Loop of the runner. Every 5 seconds checks for finished tasks and available resources to start new evaluations.
+     * Loop of the runner. Every 5 seconds checks for finished tasks and
+     * available resources to start new evaluations.
      */
     private void run() {
         log.log(Level.INFO, "Starting multiple evaluation of {0} tasks", tasks.size());
@@ -130,7 +144,6 @@ public class ServerRunner {
             checkRunningEvaluations();
             done = tasks.isEmpty();
         }
-
 
     }
 
@@ -167,12 +180,13 @@ public class ServerRunner {
     }
 
     /**
-     * Check if there are enough cores available for multiple concurrent evaluations.
-     * 
-     * @return 
+     * Check if there are enough cores available for multiple concurrent
+     * evaluations.
+     *
+     * @return
      */
     private static boolean hasCapacityForMultiEvaluation() {
-    //    return true;
+        //    return true;
         int threshold = 3;
         int available = Runtime.getRuntime().availableProcessors();
         return available >= threshold;
@@ -180,8 +194,8 @@ public class ServerRunner {
 
     /**
      * Checks for available resources.
-     * 
-     * @return 
+     *
+     * @return
      */
     private boolean hasCapacity() {
         int used = 0 + evaluations.size() * 2;
@@ -191,8 +205,8 @@ public class ServerRunner {
 
     /**
      * Gets new task to evaluate.
-     * 
-     * @return 
+     *
+     * @return
      */
     protected File getFreeTask() {
         for (File task : tasks) {
@@ -212,10 +226,21 @@ public class ServerRunner {
 
     /**
      * Gets list of tasks.
-     * 
-     * @return 
+     *
+     * @return
      */
     public List<File> getTasks() {
         return tasks;
+    }
+
+    private static void initRunner(String[] args) {
+        if (args.length > 1) {
+            unrealHome = args[1];
+            executionDir = args[2];
+            recordsPath = args[1] + "/Demos";
+
+            log.log(Level.INFO, "Unreal home: {0}", unrealHome);
+            log.log(Level.INFO, "Exec dir: {0}", executionDir);
+        }
     }
 }

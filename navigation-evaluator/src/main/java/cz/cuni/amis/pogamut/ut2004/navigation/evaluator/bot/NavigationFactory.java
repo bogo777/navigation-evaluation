@@ -134,7 +134,7 @@ public class NavigationFactory {
     static void initializePathContainer(PathContainer pathContainer, NavigationEvaluatingBot bot) {
         BotNavigationParameters params = bot.getParams();
         if (params.isRepeatTask()) {
-            pathContainer.buildFromFile(params.getRepeatFile());
+            pathContainer.buildFromFile(params.getRepeatFile(), true);
         } else if (params.isOnlyRelevantPaths()) {
             pathContainer.buildRelevant(bot.getParams().getLimit());
         } else {

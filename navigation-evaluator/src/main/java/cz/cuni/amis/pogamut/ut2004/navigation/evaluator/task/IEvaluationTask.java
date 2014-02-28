@@ -73,5 +73,11 @@ public interface IEvaluationTask<T extends UT2004BotParameters, X extends Evalua
      * 
      */
     public String getJarPath();
+
+    /**
+     * Gets path where result data should be stored.
+     * @return 
+     */
+    public String getResultPath();
     
 }
