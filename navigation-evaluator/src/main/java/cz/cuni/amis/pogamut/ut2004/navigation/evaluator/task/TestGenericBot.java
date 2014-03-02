@@ -18,6 +18,7 @@ package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task;
 
 import cz.cuni.amis.pogamut.ut2004.bot.params.UT2004BotParameters;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.EvaluatingBot;
+import java.util.logging.Level;
 
 /**
  *
@@ -46,6 +47,10 @@ public class TestGenericBot<T extends UT2004BotParameters, X extends EvaluatingB
     }
 
     public String getResultPath() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    public Level getLogLevel() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     

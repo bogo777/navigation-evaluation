@@ -18,11 +18,14 @@ package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task;
 
 import cz.cuni.amis.pogamut.ut2004.bot.params.UT2004BotParameters;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.EvaluatingBot;
+import java.util.logging.Level;
 
 /**
  * Base interface for evaluation task.
  *
  * @author Bogo
+ * @param <T> {@link UT2004BotParameters} parameters class
+ * @param <X> {@link EvaluatingBot} bot
  */
 public interface IEvaluationTask<T extends UT2004BotParameters, X extends EvaluatingBot> {
     
@@ -79,5 +82,11 @@ public interface IEvaluationTask<T extends UT2004BotParameters, X extends Evalua
      * @return 
      */
     public String getResultPath();
+    
+    /**
+     * Get level of log which should be stored in result.
+     * @return Level of log to store
+     */
+    public Level getLogLevel();
     
 }

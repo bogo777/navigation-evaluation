@@ -22,6 +22,7 @@ import cz.cuni.amis.pogamut.ut2004.bot.params.UT2004BotParameters;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.EvaluatingBot;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.ExtendedBotNavigationParameters;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.NavigationEvaluatingBot;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.PathContainer;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.RecordType;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.IEvaluationTask;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.INavigationEvaluationTask;
@@ -32,6 +33,7 @@ import cz.cuni.amis.pogamut.ut2004.utils.UT2004BotRunner;
 import cz.cuni.amis.utils.exception.PogamutException;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
 import java.io.PrintStream;
 import org.zeroturnaround.zip.ZipUtil;
 
@@ -71,7 +73,7 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
                 server = run(task.getMapName());
                 System.setProperty("pogamut.ut2004.server.port", Integer.toString(server.getControlPort()));
                 UT2004BotRunner<UT2004Bot, UT2004BotParameters> botRunner = new UT2004BotRunner<UT2004Bot, UT2004BotParameters>(task.getBotClass(), "EvaluatingBot", server.getHost(), server.getBotPort());
-                //botRunner.setLogLevel(Level.FINE);
+                botRunner.setLogLevel(task.getLogLevel());
                 log.fine("Starting evaluation bot.");
                 System.out.println("Starting evaluation bot from NavigationTaskEvaluator.");
                 bot = botRunner.startAgents(params).get(0); //task.getBotParams()).get(0); //
@@ -114,6 +116,7 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
                             done = true;
                             continue;
                         }
+                        exportPathContainer(task, paramsExt.getPathContainer());
                         params = new ExtendedBotNavigationParameters((INavigationEvaluationTask) task, paramsExt.getPathContainer(), paramsExt.getEvaluationResult());
                         ((ExtendedBotNavigationParameters) params).setIteration(paramsExt.getIteration() + 1);
                     }
@@ -139,6 +142,19 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
                 if (ServerRunner.doCompress()) {
                     ZipUtil.packEntry(currentLogFile, new File(currentLog + ".zip"));
                     currentLogFile.delete();
+                    File[] demos = currentLogFile.getParentFile().listFiles(new FilenameFilter() {
+
+                        public boolean accept(File dir, String name) {
+                            return name.endsWith(".demo4");
+                        }
+                    });
+                    if (demos.length > 0) {
+                        ZipUtil.packEntries(demos, new File(currentLogFile.getParent() + "/demos-" + (iteration - 1) + ".zip"));
+                        for (File demo : demos) {
+                            demo.delete();
+                        }
+                    }
+
                 }
             }
         }
@@ -147,6 +163,11 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
             System.setOut(new PrintStream(currentLog));
         } catch (FileNotFoundException ex) {
         }
+    }
+
+    private void exportPathContainer(IEvaluationTask task, PathContainer pathContainer) {
+        String path = task.getResultPath() + "/pathcontainer.csv";
+        pathContainer.exportToFile(path);
     }
 
 }

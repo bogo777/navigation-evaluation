@@ -241,7 +241,12 @@ public class PathContainer {
                 String[] splitLine = line.split(";");
                 WorldObjectId startId = WorldObjectId.get(splitLine[isRepeat ? 1 : 0]);
                 WorldObjectId endId = WorldObjectId.get(splitLine[isRepeat ? 2 : 1]);
-                addPath(startId, endId);
+                if(!isRepeat && splitLine.length == 3) {
+                    //TODO: Add as taboo path
+                    addPath(startId, endId);
+                } else {
+                    addPath(startId, endId);
+                }
                 line = reader.readLine();
             }
         } catch (FileNotFoundException ex) {
@@ -261,6 +266,10 @@ public class PathContainer {
 
     public void exportToFile(String path) {
         File pathsFile = new File(path);
+        if(isEmpty()) {
+            pathsFile.delete();
+            return;
+        }
         BufferedWriter writer = null;
         try {
             writer = new BufferedWriter(new FileWriter(pathsFile));
@@ -271,6 +280,11 @@ public class PathContainer {
                     writer.write(String.format("%s:%s", start, end.getStringId()));
                     writer.newLine();
                 }
+            }
+            for(Entry<Path, Integer> tabooEntry : tabooPaths.entrySet()) {
+                Path tabooPath = tabooEntry.getKey();
+                writer.write(String.format("%s;%s;%d", tabooPath.getStart().getId().getStringId(), tabooPath.getEnd().getId().getStringId(), tabooEntry.getValue()));
+                writer.newLine();
             }
         } catch (FileNotFoundException ex) {
             Logger.getLogger(PathContainer.class.getName()).log(Level.SEVERE, null, ex);

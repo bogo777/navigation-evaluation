@@ -19,6 +19,7 @@ package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.RecordType;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
 
 /**
  * Helper class for fast creation of batch of {@link NavigationEvaluationTask}s.
@@ -38,24 +39,39 @@ public class NavigationEvaluationBatchTaskCreator {
      * @param limit
      * @param resultPath
      * @param recordType
+     * @param level
      * @return
      */
-    public static List<NavigationEvaluationTask> createBatch(String navigation, String pathPlanner, List<String> mapNames, boolean onlyRelevantPaths, int limit, String resultPath, RecordType recordType) {
+    public static List<NavigationEvaluationTask> createBatch(String navigation, String pathPlanner, List<String> mapNames, boolean onlyRelevantPaths, int limit, String resultPath, RecordType recordType, Level level) {
         List<NavigationEvaluationTask> tasks = new LinkedList<NavigationEvaluationTask>();
 
         for (String map : mapNames) {
-            tasks.add(new NavigationEvaluationTask(navigation, pathPlanner, map, onlyRelevantPaths, limit, resultPath, recordType));
+            tasks.add(new NavigationEvaluationTask(navigation, pathPlanner, map, onlyRelevantPaths, limit, resultPath, recordType, level));
         }
 
         return tasks;
     }
 
-    public static List<NavigationEvaluationTask> createBatch(List<String> navigations, List<String> pathPlanners, String mapName, boolean onlyRelevantPaths, int limit, String resultPath, RecordType recordType) {
+    /**
+     * Creates batch of tasks. Generates task for every map in {@code mapNames}
+     * with given parameters. 
+     * 
+     * @param navigations
+     * @param pathPlanners
+     * @param mapName
+     * @param onlyRelevantPaths
+     * @param limit
+     * @param resultPath
+     * @param recordType
+     * @param level
+     * @return 
+     */
+    public static List<NavigationEvaluationTask> createBatch(List<String> navigations, List<String> pathPlanners, String mapName, boolean onlyRelevantPaths, int limit, String resultPath, RecordType recordType, Level level) {
         List<NavigationEvaluationTask> tasks = new LinkedList<NavigationEvaluationTask>();
 
         for (String navigation : navigations) {
             for (String pathPlanner : pathPlanners) {
-                tasks.add(new NavigationEvaluationTask(navigation, pathPlanner, mapName, onlyRelevantPaths, limit, resultPath, recordType));
+                tasks.add(new NavigationEvaluationTask(navigation, pathPlanner, mapName, onlyRelevantPaths, limit, resultPath, recordType, level));
             }
         }
 

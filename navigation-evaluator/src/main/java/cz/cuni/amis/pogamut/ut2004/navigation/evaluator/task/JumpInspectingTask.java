@@ -21,6 +21,7 @@ import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.JumpInspectingBot;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.logging.Level;
 
 /**
  *
@@ -65,6 +66,10 @@ public class JumpInspectingTask extends EvaluationTask<UT2004BotParameters, Jump
             this.resultPath = fullPath;
         }
         return resultPath;
+    }
+
+    public Level getLogLevel() {
+        return Level.ALL;
     }
     
 }

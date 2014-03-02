@@ -22,6 +22,7 @@ import cz.cuni.amis.pogamut.ut2004.bot.params.UT2004BotParameters;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.NavigationEvaluationRepeatTask;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.INavigationEvaluationTask;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.RecordType;
+import java.util.logging.Level;
 
 /**
  * Navigation parameters for creating custom navigation in
@@ -167,5 +168,9 @@ public class BotNavigationParameters extends UT2004BotParameters {
      */
     boolean keepOnlyFailedRecords() {
         return task.getRecordType() == RecordType.PATH_FAILED || task.getRecordType() == RecordType.FULL_FAILED;
+    }
+
+    Level getLogLevel() {
+        return task.getLogLevel();
     }
 }

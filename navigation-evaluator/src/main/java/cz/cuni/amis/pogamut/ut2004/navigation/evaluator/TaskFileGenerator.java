@@ -27,6 +27,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
 import org.zeroturnaround.zip.ZipUtil;
 
 /**
@@ -74,8 +75,8 @@ public class TaskFileGenerator {
 //        myTasks.add(taskDMCrash);
 
 
-        myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("navigation", "fwMap", MapInfo.getAllDMMaps(), true, -1, statsPath, RecordType.PATH_FAILED));
-        myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("navigation", "fwMap", MapInfo.getAllCTFMaps(), true, -1, statsPath, RecordType.PATH_FAILED));
+        myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("navigation", "fwMap", MapInfo.getAllDMMaps(), true, -1, statsPath, RecordType.PATH_FAILED, Level.WARNING));
+        myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("navigation", "fwMap", MapInfo.getAllCTFMaps(), true, -1, statsPath, RecordType.PATH_FAILED, Level.WARNING));
         
         //myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch(Arrays.asList("navigation", "acc"), Arrays.asList("fwMap", "navMesh"), "CTF-1on1-Joust", true, -1, statsPath, RecordType.PATH_FAILED));
 
@@ -91,7 +92,7 @@ public class TaskFileGenerator {
 //        myTasks.add(jumpTask);
 
         for (IEvaluationTask task : myTasks) {
-            EvaluationTaskFactory.toXml(task, "C:/Temp/Pogamut/270214_many/");
+            EvaluationTaskFactory.toXml(task, "C:/Temp/Pogamut/020314/");
         }
     }
 }

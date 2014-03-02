@@ -68,6 +68,7 @@ public abstract class SingleTaskEvaluatorBase {
         conf.setGameType(gameType);
         conf.setMapName(mapName);
         UCCWrapper server = new UCCWrapper(conf);
+        server.getLogger().setLevel(Level.WARNING);
         log.fine("UCC server started.");
         return server;
     }

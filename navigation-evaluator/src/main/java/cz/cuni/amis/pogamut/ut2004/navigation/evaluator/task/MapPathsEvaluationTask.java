@@ -20,6 +20,7 @@ import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.MapPathsBotParameter
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.MapPathsBot;
 import java.io.File;
 import java.util.List;
+import java.util.logging.Level;
 
 /**
  * Task for evaluation of types of map paths.
@@ -35,6 +36,7 @@ public class MapPathsEvaluationTask extends EvaluationTask<MapPathsBotParameters
     private PathType pathType;
     private int batchNumber = 0;
     private boolean relevantOnly = false;
+    private Level level = Level.ALL;
 
     private MapPathsEvaluationTask() {
         super(MapPathsBotParameters.class, MapPathsBot.class);
@@ -173,6 +175,10 @@ public class MapPathsEvaluationTask extends EvaluationTask<MapPathsBotParameters
 
     public boolean getRelevantOnly() {
         return relevantOnly;
+    }
+
+    public Level getLogLevel() {
+        return level;
     }
 
     /**

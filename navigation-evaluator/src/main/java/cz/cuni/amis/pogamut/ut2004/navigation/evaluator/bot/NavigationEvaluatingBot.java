@@ -69,7 +69,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
 	private NavigationState state;
 	private Date startDate;
 	private EvaluationResult result;
-	public static final int PATH_RECORDS_LIMIT = 100;
+	public static final int PATH_RECORDS_LIMIT = 10;
 
 	private boolean waitForRecordStart = false;
 	private IPathFuture<ILocated> waitingPath = null;
@@ -237,7 +237,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
 	public void botFirstSpawn(GameInfo gameInfo, ConfigChange config, InitedMessage init, Self self) {
 		// receive logs from the navigation so you can get a grasp on how it is
 		// working
-		pathExecutor.getLog().setLevel(Level.ALL);
+		pathExecutor.getLog().setLevel(getParams().getLogLevel());
 	}
 
 	/**

@@ -23,6 +23,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Level;
 
 /**
  * Evaluation task. Consists of map to evaluate and parameters of navigation.
@@ -40,6 +41,7 @@ public class NavigationEvaluationTask extends EvaluationTask<BotNavigationParame
     private RecordType recordType;
     //Max number of paths to explore
     private int limit;
+    private String stringLevel;
 
     /**
      * Default constructor.
@@ -52,7 +54,7 @@ public class NavigationEvaluationTask extends EvaluationTask<BotNavigationParame
      * @param resultBasePath
      * @param recordType 
      */
-    public NavigationEvaluationTask(String navigation, String pathPlanner, String mapName, boolean onlyRelevantPaths, int limit, String resultBasePath, RecordType recordType) {
+    public NavigationEvaluationTask(String navigation, String pathPlanner, String mapName, boolean onlyRelevantPaths, int limit, String resultBasePath, RecordType recordType, Level level) {
         super(BotNavigationParameters.class, NavigationEvaluatingBot.class);
         this.navigation = navigation;
         this.pathPlanner = pathPlanner;
@@ -60,19 +62,20 @@ public class NavigationEvaluationTask extends EvaluationTask<BotNavigationParame
         this.onlyRelevantPaths = onlyRelevantPaths;
         this.limit = limit;
         this.recordType = recordType;
+        this.stringLevel = level.getName();
 
         this.resultBasePath = resultBasePath;
     }
 
     @Deprecated
     public NavigationEvaluationTask(String navigation, String pathPlanner, String mapName, boolean onlyRelevantPaths, String resultPath) {
-        this(navigation, pathPlanner, mapName, onlyRelevantPaths, 30, resultPath, RecordType.FULL);
+        this(navigation, pathPlanner, mapName, onlyRelevantPaths, 30, resultPath, RecordType.FULL, Level.ALL);
     }
 
     //TODO: Remove
     @Deprecated
     public NavigationEvaluationTask() {
-        this("navigation", "fwMap", "DM-TrainingDay", true, 10, "C:/Temp/Pogamut/stats/", RecordType.FULL);
+        this("navigation", "fwMap", "DM-TrainingDay", true, 10, "C:/Temp/Pogamut/stats/", RecordType.FULL, Level.ALL);
     }
 
     /**
@@ -84,8 +87,8 @@ public class NavigationEvaluationTask extends EvaluationTask<BotNavigationParame
     @Deprecated
     public static NavigationEvaluationTask buildFromArgs(String[] args) {
         //TODO: Check validity of args?
-        if (args.length == 7) {
-            return new NavigationEvaluationTask(args[0], args[1], args[2], Boolean.parseBoolean(args[3]), Integer.parseInt(args[4]), args[5], RecordType.valueOf(args[6]));
+        if (args.length == 8) {
+            return new NavigationEvaluationTask(args[0], args[1], args[2], Boolean.parseBoolean(args[3]), Integer.parseInt(args[4]), args[5], RecordType.valueOf(args[6]), Level.parse(args[7]));
         }
         return new NavigationEvaluationTask();
     }
@@ -190,5 +193,9 @@ public class NavigationEvaluationTask extends EvaluationTask<BotNavigationParame
 
     public String getFileName() {
         return String.format("NavigationEvaluation_%s_%s_%s", navigation, pathPlanner, mapName);
+    }
+
+    public Level getLogLevel() {
+        return Level.parse(stringLevel);
     }
 }
