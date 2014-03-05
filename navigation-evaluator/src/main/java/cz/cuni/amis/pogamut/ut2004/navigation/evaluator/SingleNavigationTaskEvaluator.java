@@ -57,6 +57,9 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
             }
         }
 
+        //Set base path for result
+        task.setResultBasePath(ServerRunner.getStatsBasePath());
+        
         //We will record single paths and restart ucc regularly...
         int iteration = 0;
 

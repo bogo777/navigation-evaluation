@@ -19,11 +19,15 @@ package cz.cuni.amis.pogamut.ut2004.navigation.evaluator;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.IEvaluationTask;
 import cz.cuni.amis.utils.exception.PogamutException;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,19 +40,54 @@ import java.util.logging.SimpleFormatter;
  */
 public class ServerRunner {
 
+    private static final Properties properties = new Properties();
+
     public static final boolean isLab = true;
 
     //Platforms specific paths in one place in code for now.
-    public static String executionDir = System.getProperty("os.name").toLowerCase().contains("linux") ? "/home/bohuslav_machac" : "C:/Temp/Pogamut";
-    public static String unrealHome = System.getProperty("os.name").toLowerCase().contains("linux") ? (isLab ? "/afs/ms/u/m/machacb/BIG/UT2004-Dedicated-3369-Linux" : "/home/bohuslav_machac/UT2004-Dedicated-3369-Linux") : "C:/Games/UT";
-    public static String recordsPath = unrealHome + "/Demos";
-    
+    //private static String executionDir = System.getProperty("os.name").toLowerCase().contains("linux") ? "/home/bohuslav_machac" : "C:/Temp/Pogamut";
+    //private static String unrealHome = System.getProperty("os.name").toLowerCase().contains("linux") ? (isLab ? "/afs/ms/u/m/machacb/BIG/UT2004-Dedicated-3369-Linux" : "/home/bohuslav_machac/UT2004-Dedicated-3369-Linux") : "C:/Games/UT";
+    //private static String recordsPath = unrealHome 
+
     public static boolean doCompress() {
-        return true;
+        return Boolean.parseBoolean(properties.getProperty("compress"));
     }
-    
+
     public static boolean doDelete() {
-        return true;
+        return Boolean.parseBoolean(properties.getProperty("delete"));
+    }
+
+    static {
+        try {
+            loadProperties();
+        } catch (IOException ex) {
+            Logger.getLogger(ServerRunner.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    /**
+     * @return the executionDir
+     */
+    public static String getExecutionDir() {
+        return properties.getProperty("execution.dir");
+    }
+
+    /**
+     * @return the unrealHome
+     */
+    public static String getUnrealHome() {
+        return properties.getProperty("unreal.home");
+    }
+
+    /**
+     * @return the recordsPath
+     */
+    public static String getRecordsPath() {
+        return getUnrealHome() + "/Demos";
+    }
+
+    static String getStatsBasePath() {
+        return properties.getProperty("stats.dir");
     }
 
     public ServerRunner() {
@@ -58,9 +97,10 @@ public class ServerRunner {
         handler.setFormatter(new SimpleFormatter());
         handler.setLevel(Level.ALL);
         log.addHandler(handler);
+
     }
 
-    private List<EvaluatorHandle> evaluations = new LinkedList<EvaluatorHandle>();
+    private final List<EvaluatorHandle> evaluations = new LinkedList<EvaluatorHandle>();
     private List<File> tasks;
     private static final Logger log = Logger.getLogger("ServerRunner");
 
@@ -95,7 +135,7 @@ public class ServerRunner {
     public static void main(String args[]) {
         ServerRunner runner = new ServerRunner();
 
-        runner.initRunner(args);
+        ServerRunner.initRunner(args);
 
         runner.initTasks(args);
 
@@ -235,12 +275,21 @@ public class ServerRunner {
 
     private static void initRunner(String[] args) {
         if (args.length > 1) {
-            unrealHome = args[1];
-            executionDir = args[2];
-            recordsPath = args[1] + "/Demos";
+            //Not supported now
+            //unrealHome = args[1];
+            //executionDir = args[2];
+            //recordsPath = args[1] + "/Demos";
 
-            log.log(Level.INFO, "Unreal home: {0}", unrealHome);
-            log.log(Level.INFO, "Exec dir: {0}", executionDir);
+            log.log(Level.INFO, "Unreal home: {0}", getUnrealHome());
+            log.log(Level.INFO, "Exec dir: {0}", getExecutionDir());
         }
+    }
+
+    private static void loadProperties() throws FileNotFoundException, IOException {
+        File propertiesFile = new File("config.properties");
+        if (!propertiesFile.exists()) {
+            throw new FileNotFoundException("Required properties file config.properties doesn't exist!");
+        }
+        properties.load(new FileInputStream(propertiesFile));
     }
 }

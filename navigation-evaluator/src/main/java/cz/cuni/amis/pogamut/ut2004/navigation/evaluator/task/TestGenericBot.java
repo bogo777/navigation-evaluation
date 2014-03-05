@@ -53,5 +53,9 @@ public class TestGenericBot<T extends UT2004BotParameters, X extends EvaluatingB
     public Level getLogLevel() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
+
+    public void setResultBasePath(String basePath) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
     
 }

@@ -181,6 +181,10 @@ public class MapPathsEvaluationTask extends EvaluationTask<MapPathsBotParameters
         return level;
     }
 
+    public void setResultBasePath(String basePath) {
+        //Do nothing
+    }
+
     /**
      * Path types to count.
      * 

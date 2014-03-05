@@ -198,4 +198,13 @@ public class NavigationEvaluationTask extends EvaluationTask<BotNavigationParame
     public Level getLogLevel() {
         return Level.parse(stringLevel);
     }
+
+    public void setResultBasePath(String basePath) {
+        if(resultBasePath.isEmpty()) {
+            this.resultBasePath = basePath;
+        } else {
+            this.resultBasePath = resultBasePath.replace("base:", basePath);
+        }
+        this.resultPath = null;
+    }
 }

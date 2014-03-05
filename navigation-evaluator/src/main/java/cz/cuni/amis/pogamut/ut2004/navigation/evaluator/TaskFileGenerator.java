@@ -39,7 +39,7 @@ public class TaskFileGenerator {
     
     public static final boolean isLab = true;
 
-    public static String statsPath = isLab ? "/afs/ms/u/m/machacb/BIG/Pogamut/stats" : System.getProperty("os.name").toLowerCase().contains("linux") ? "/home/bohuslav_machac/evaluation/stats" : "C:/Temp/Pogamut/stats";
+    public static String statsPath = "base:";
 
     public static void main(String args[]) {
         
@@ -92,7 +92,7 @@ public class TaskFileGenerator {
 //        myTasks.add(jumpTask);
 
         for (IEvaluationTask task : myTasks) {
-            EvaluationTaskFactory.toXml(task, "C:/Temp/Pogamut/020314/");
+            EvaluationTaskFactory.toXml(task, "C:/Temp/Pogamut/050314_allmaps/");
         }
     }
 }

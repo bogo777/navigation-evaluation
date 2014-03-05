@@ -214,7 +214,7 @@ public class EvaluationResult {
         }
         //Move record file to result directory
         String recordFileName = getRecordName(path) + ".demo4";
-        File recordFile = new File(ServerRunner.recordsPath, recordFileName);
+        File recordFile = new File(ServerRunner.getRecordsPath(), recordFileName);
         if (delete) {
             recordFile.delete();
         } else {
@@ -238,7 +238,7 @@ public class EvaluationResult {
         }
         //Move record file to result directory
         String recordFileName = getRecordName() + ".demo4";
-        File recordFile = new File(ServerRunner.recordsPath, recordFileName);
+        File recordFile = new File(ServerRunner.getRecordsPath(), recordFileName);
         if (delete) {
             recordFile.delete();
         } else {

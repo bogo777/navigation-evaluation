@@ -45,6 +45,8 @@ public class SingleTaskEvaluator extends SingleTaskEvaluatorBase {
      * @return Execution result.
      */
     public int execute(IEvaluationTask task) {
+        //Set base path for result
+        task.setResultBasePath(ServerRunner.getStatsBasePath());
         setupLog(task.getLogPath());
         int status = 0;
         UCCWrapper server = null;

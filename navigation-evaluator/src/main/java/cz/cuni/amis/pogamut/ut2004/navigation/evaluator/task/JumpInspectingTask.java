@@ -71,5 +71,9 @@ public class JumpInspectingTask extends EvaluationTask<UT2004BotParameters, Jump
     public Level getLogLevel() {
         return Level.ALL;
     }
+
+    public void setResultBasePath(String basePath) {
+        //Do nothing
+    }
     
 }

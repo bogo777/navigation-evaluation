@@ -89,4 +89,5 @@ public interface IEvaluationTask<T extends UT2004BotParameters, X extends Evalua
      */
     public Level getLogLevel();
     
+    public void setResultBasePath(String basePath);
 }

@@ -62,7 +62,7 @@ public abstract class SingleTaskEvaluatorBase {
     public static UCCWrapper run(String mapName) {
         log.fine("UCC server starting...");
         UCCWrapperConf conf = new UCCWrapperConf();
-        conf.setUnrealHome(ServerRunner.unrealHome);
+        conf.setUnrealHome(ServerRunner.getUnrealHome());
         conf.setStartOnUnusedPort(true);
         String gameType = MapInfo.getGameType(mapName);
         conf.setGameType(gameType);
