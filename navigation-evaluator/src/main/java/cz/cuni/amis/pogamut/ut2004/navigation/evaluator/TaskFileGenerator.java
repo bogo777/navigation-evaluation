@@ -57,8 +57,11 @@ public class TaskFileGenerator {
     //            ,"DM-TrainingDay"
                 );
         
-//        MapPathsBatchTaskCreator mapPathsBatchTask = new MapPathsBatchTaskCreator(4, Arrays.asList("DM-1on1-Serpentine"), "navigation", "fwMap", statsPath + "/maps2502", Arrays.asList(PathType.values()), false);
-//        myTasks.addAll(mapPathsBatchTask.createBatch());
+        MapPathsBatchTaskCreator mapPathsBatchTask = new MapPathsBatchTaskCreator(6, MapInfo.getAllMaps(), "navigation", "fwMap", "C:/Temp/Pogamut/all_maps_stats", Arrays.asList(PathType.values()), false);
+        myTasks.addAll(mapPathsBatchTask.createBatch());
+        
+        MapPathsBatchTaskCreator mapPathsBatchTask2 = new MapPathsBatchTaskCreator(7, MapInfo.getAllMaps(), "navigation", "fwMap", "C:/Temp/Pogamut/all_maps_stats", Arrays.asList(PathType.values()), true);
+        myTasks.addAll(mapPathsBatchTask2.createBatch());
 //        
 //        MapPathsBatchTaskCreator mapPathsBatchTask2 = new MapPathsBatchTaskCreator(5, Arrays.asList("DM-1on1-Serpentine"), "navigation", "fwMap", statsPath + "/maps2502", Arrays.asList(PathType.values()), true);
 //        myTasks.addAll(mapPathsBatchTask2.createBatch());
@@ -75,8 +78,8 @@ public class TaskFileGenerator {
 //        myTasks.add(taskDMCrash);
 
 
-        myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("navigation", "fwMap", MapInfo.getAllDMMaps(), true, -1, statsPath, RecordType.PATH_FAILED, Level.WARNING));
-        myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("navigation", "fwMap", MapInfo.getAllCTFMaps(), true, -1, statsPath, RecordType.PATH_FAILED, Level.WARNING));
+   //     myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("navigation", "fwMap", MapInfo.getAllDMMaps(), true, -1, statsPath, RecordType.PATH_FAILED, Level.WARNING));
+   //     myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("navigation", "fwMap", MapInfo.getAllCTFMaps(), true, -1, statsPath, RecordType.PATH_FAILED, Level.WARNING));
         
         //myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch(Arrays.asList("navigation", "acc"), Arrays.asList("fwMap", "navMesh"), "CTF-1on1-Joust", true, -1, statsPath, RecordType.PATH_FAILED));
 
@@ -92,7 +95,7 @@ public class TaskFileGenerator {
 //        myTasks.add(jumpTask);
 
         for (IEvaluationTask task : myTasks) {
-            EvaluationTaskFactory.toXml(task, "C:/Temp/Pogamut/050314_allmaps/");
+            EvaluationTaskFactory.toXml(task, "C:/Temp/Pogamut/080314_map_tasks/");
         }
     }
 }

@@ -16,6 +16,7 @@
  */
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task;
 
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.FileNames;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.BotNavigationParameters;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.NavigationEvaluatingBot;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.RecordType;
@@ -53,6 +54,7 @@ public class NavigationEvaluationTask extends EvaluationTask<BotNavigationParame
      * @param limit
      * @param resultBasePath
      * @param recordType 
+     * @param level 
      */
     public NavigationEvaluationTask(String navigation, String pathPlanner, String mapName, boolean onlyRelevantPaths, int limit, String resultBasePath, RecordType recordType, Level level) {
         super(BotNavigationParameters.class, NavigationEvaluatingBot.class);
@@ -148,7 +150,7 @@ public class NavigationEvaluationTask extends EvaluationTask<BotNavigationParame
     }
 
     public String getLogPath() {
-        return getResultPath() + "log.log";
+        return FileNames.joinPath(getResultPath(), FileNames.LOG_FILE);
     }
 
     public void setNavigation(String navigation) {

@@ -53,9 +53,11 @@ public class EvaluatorHandle {
      * Creates new JVM and starts {@link SingleTaskEvaluator} in it.
      *
      * @param task
+     * @param log
+     * @param isResume
      * @return
      */
-    public boolean createEvaluator(File task, Logger log) {
+    public boolean createEvaluator(File task, Logger log, boolean isResume) {
         this.task = task;
         if (status != Status.NEW) {
             return false;
@@ -77,6 +79,9 @@ public class EvaluatorHandle {
 
         command.add(SingleNavigationTaskEvaluator.class.getName());
         command.add(task.getAbsolutePath());
+        if(isResume) {
+            command.add("--resume");
+        }
 
         ProcessExecutionConfig config = new ProcessExecutionConfig();
         config.setPathToProgram(path);

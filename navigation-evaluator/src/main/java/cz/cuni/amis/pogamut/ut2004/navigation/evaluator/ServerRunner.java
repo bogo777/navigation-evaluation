@@ -48,7 +48,6 @@ public class ServerRunner {
     //private static String executionDir = System.getProperty("os.name").toLowerCase().contains("linux") ? "/home/bohuslav_machac" : "C:/Temp/Pogamut";
     //private static String unrealHome = System.getProperty("os.name").toLowerCase().contains("linux") ? (isLab ? "/afs/ms/u/m/machacb/BIG/UT2004-Dedicated-3369-Linux" : "/home/bohuslav_machac/UT2004-Dedicated-3369-Linux") : "C:/Games/UT";
     //private static String recordsPath = unrealHome 
-
     public static boolean doCompress() {
         return Boolean.parseBoolean(properties.getProperty("compress"));
     }
@@ -86,6 +85,10 @@ public class ServerRunner {
         return getUnrealHome() + "/Demos";
     }
 
+    public static int getPathRecordsLimit() {
+        return Integer.parseInt(properties.getProperty("path.records.limit"));
+    }
+
     static String getStatsBasePath() {
         return properties.getProperty("stats.dir");
     }
@@ -102,6 +105,7 @@ public class ServerRunner {
 
     private final List<EvaluatorHandle> evaluations = new LinkedList<EvaluatorHandle>();
     private List<File> tasks;
+    private boolean isResume = false;
     private static final Logger log = Logger.getLogger("ServerRunner");
 
     /**
@@ -114,7 +118,7 @@ public class ServerRunner {
         tasks = new ArrayList<File>();
 
         String evalDir = ".";
-        if (args.length == 1) {
+        if (args.length >= 1) {
             evalDir = args[0];
         }
         File x = new File(evalDir);
@@ -124,6 +128,9 @@ public class ServerRunner {
             }
         };
         tasks.addAll(Arrays.asList(x.listFiles(filter)));
+        if (args.length >= 2) {
+            isResume = args[1].equals("--resume");
+        }
     }
 
     /**
@@ -147,7 +154,7 @@ public class ServerRunner {
             //Run the evaluation directly
             log.fine("Direct evaluation");
             DirectRunner directRunner = new DirectRunner(runner);
-            directRunner.run();
+            directRunner.run(runner.isResume);
         }
 
         System.exit(0);
@@ -168,7 +175,7 @@ public class ServerRunner {
                     hasFreeTasks = false;
                 } else {
                     EvaluatorHandle handle = new EvaluatorHandle();
-                    if (handle.createEvaluator(task, log)) {
+                    if (handle.createEvaluator(task, log, isResume)) {
                         log.fine("Created new evaluation handler");
                         evaluations.add(handle);
                     }

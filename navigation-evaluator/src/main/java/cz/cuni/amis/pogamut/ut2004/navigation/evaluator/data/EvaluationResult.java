@@ -17,18 +17,27 @@
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data;
 
 import cz.cuni.amis.pogamut.base.communication.command.IAct;
+import cz.cuni.amis.pogamut.base.communication.worldview.object.WorldObjectId;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.Path;
 import cz.cuni.amis.pogamut.base.utils.logging.LogCategory;
 import cz.cuni.amis.pogamut.base3d.worldview.object.Location;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbcommands.Record;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbcommands.StopRecord;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPoint;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.FileNames;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.ServerRunner;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.PathContainer;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.PathResult.ResultType;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Result of evaluation of corresponding task.
@@ -45,12 +54,13 @@ public class EvaluationResult {
     private int failedCount = 0;
     private int notBuiltCount = 0;
     private int processedCount = 0;
-    
+
     private int failedToStartCount = 0;
     private int failedInNavigateCount = 0;
     private int failedToStartInNavigateCount = 0;
-    
+
     private String resultPath;
+    private boolean isInitialized;
 
     public EvaluationResult(int total, String map, LogCategory log, String resultPath) {
         totalPaths = total;
@@ -58,6 +68,7 @@ public class EvaluationResult {
         this.log = log;
         this.resultPath = resultPath;
         pathResults = new HashSet<PathResult>(totalPaths);
+        isInitialized = log != null;
     }
 
     /**
@@ -71,7 +82,7 @@ public class EvaluationResult {
         updateCounters(type);
         pathResults.add(new PathResult(path, type, duration));
     }
-    
+
     /**
      * Adds result for single path.
      *
@@ -85,7 +96,7 @@ public class EvaluationResult {
         updateCounters(type);
         pathResults.add(new PathResult(path, type, duration, location, nearestNavPoint));
     }
-    
+
     private void updateCounters(PathResult.ResultType type) {
         ++processedCount;
         switch (type) {
@@ -119,7 +130,7 @@ public class EvaluationResult {
     public void exportAggregate() {
         FileWriter fstream = null;
         try {
-            File resultFile = getResultFile("aggregate.csv");
+            File resultFile = getResultFile(FileNames.DATA_AGG_FILE);
             fstream = new FileWriter(resultFile);
             BufferedWriter out = new BufferedWriter(fstream);
             out.write("Map;Total;Processes;Completed;Failed;NotBuilt;FailedToStart;FailedInNavigate;FailedToStartInNavigate");
@@ -143,16 +154,22 @@ public class EvaluationResult {
 
     /**
      * Export complete statistics about evaluation.
+     *
+     * @param append Append or overwrite
      */
-    public void export() {
+    public void export(boolean append) {
         FileWriter fstream = null;
         try {
-            File resultFile = getResultFile("csv");
+            File resultFile = getResultFile(FileNames.DATA_FILE);
+            boolean newFile = !resultFile.exists();
             resultFile.getParentFile().mkdirs();
-            fstream = new FileWriter(resultFile);
+            fstream = new FileWriter(resultFile, append);
             BufferedWriter out = new BufferedWriter(fstream);
-            out.write("ID;From;To;Type;Duration;Length;Jumps;Lifts;Location;NavPoint");
-            out.newLine();
+            if (newFile) {
+                out.write("ID;From;To;Type;Duration;Length;Jumps;Lifts;Location;NavPoint");
+                out.newLine();
+            }
+           
             for (PathResult result : pathResults) {
                 out.write(result.export());
                 out.newLine();
@@ -169,19 +186,21 @@ public class EvaluationResult {
                 log.warning(ex.getMessage());
             }
         }
+        if(append) {
+            pathResults.clear();
+        }
     }
 
-    private File getResultFile(String fileNameSuffix) {
-        String fileName = "data." + fileNameSuffix;
-        String fullFilePath = resultPath + fileName;
+    private File getResultFile(String fileName) {
+        String fullFilePath = FileNames.joinPath(resultPath, fileName);
         File resultFile = new File(fullFilePath);
         return resultFile;
     }
 
     /**
      * Starts recording.
-     * 
-     * @param act 
+     *
+     * @param act
      */
     public void startRecording(IAct act) {
         act.act(new Record(getRecordName()));
@@ -189,9 +208,9 @@ public class EvaluationResult {
 
     /**
      * Starts recording of path. Saves record to corresponding file.
-     * 
+     *
      * @param act
-     * @param path 
+     * @param path
      */
     public void startRecording(IAct act, Path path) {
         act.act(new Record(getRecordName(path)));
@@ -199,10 +218,10 @@ public class EvaluationResult {
 
     /**
      * Stops recording of path. Possibly deletes the record.
-     * 
+     *
      * @param act
      * @param path
-     * @param delete 
+     * @param delete
      */
     public void stopRecording(IAct act, Path path, boolean delete) {
         act.act(new StopRecord());
@@ -224,9 +243,9 @@ public class EvaluationResult {
 
     /**
      * Stops recording. Possibly deletes the record.
-     * 
+     *
      * @param act
-     * @param delete 
+     * @param delete
      */
     public void stopRecording(IAct act, boolean delete) {
         act.act(new StopRecord());
@@ -266,8 +285,8 @@ public class EvaluationResult {
 
     /**
      * If the evaluation contains failed paths.
-     * 
-     * @return 
+     *
+     * @return
      */
     public boolean hasFailedResult() {
         return failedCount > 0;
@@ -275,8 +294,8 @@ public class EvaluationResult {
 
     /**
      * Total number of paths for evaluation.
-     * 
-     * @return 
+     *
+     * @return
      */
     public int getTotalPaths() {
         return totalPaths;
@@ -284,16 +303,51 @@ public class EvaluationResult {
 
     /**
      * Number of processed paths.
-     * 
-     * @return 
+     *
+     * @return
      */
     public int getProcessedCount() {
         return processedCount;
-    } 
+    }
 
     public void setLog(LogCategory log) {
         this.log = log;
+        isInitialized = log != null;
     }
-    
-    
+
+    public boolean isInitialized() {
+        return isInitialized;
+    }
+
+    public void loadFromFile(File resultFile, int remaining) {
+        totalPaths = remaining;
+
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(new FileReader(resultFile));
+            //Skip first line - contains column descriptors
+            reader.readLine();
+            String line = reader.readLine();
+            while (line != null) {
+                String[] splitLine = line.split(";");
+                ResultType result = ResultType.valueOf(splitLine[3]);
+                updateCounters(result);
+                ++totalPaths;
+                line = reader.readLine();
+            }
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(PathContainer.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(PathContainer.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                if (reader != null) {
+                    reader.close();
+                }
+            } catch (IOException ex) {
+                Logger.getLogger(PathContainer.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+
 }

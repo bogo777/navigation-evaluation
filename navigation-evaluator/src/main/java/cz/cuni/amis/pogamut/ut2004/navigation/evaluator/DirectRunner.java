@@ -33,7 +33,7 @@ public class DirectRunner {
         this.serverRunner = serverRunner;
     }
 
-    public void run() {
+    public void run(boolean isResume) {
 
         boolean done = serverRunner.getTasks().isEmpty();
         while (!done) {
@@ -42,8 +42,8 @@ public class DirectRunner {
             if (task == null) {
                 break;
             } else {
-                SingleTaskEvaluator evaluator = new SingleNavigationTaskEvaluator();
-                int result = evaluator.execute(task);
+                SingleNavigationTaskEvaluator evaluator = new SingleNavigationTaskEvaluator();
+                int result = evaluator.execute(task, isResume);
                 if (result == 0) {
                     serverRunner.getTasks().remove(taskFile);
                 }

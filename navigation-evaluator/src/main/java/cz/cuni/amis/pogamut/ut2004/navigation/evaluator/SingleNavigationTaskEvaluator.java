@@ -23,6 +23,7 @@ import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.EvaluatingBot;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.ExtendedBotNavigationParameters;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.NavigationEvaluatingBot;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.PathContainer;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.EvaluationResult;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.RecordType;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.IEvaluationTask;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.INavigationEvaluationTask;
@@ -45,8 +46,7 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
 
     private String currentLog = null;
 
-    @Override
-    public int execute(IEvaluationTask task) {
+    public int execute(IEvaluationTask task, boolean isResume) {
         //We can run the task without path record in standard Evaluator... 
         if (!task.getClass().isAssignableFrom(NavigationEvaluationTask.class)) {
             return super.execute(task);
@@ -59,16 +59,28 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
 
         //Set base path for result
         task.setResultBasePath(ServerRunner.getStatsBasePath());
-        
-        //We will record single paths and restart ucc regularly...
-        int iteration = 0;
 
         int status = 0;
         UCCWrapper server = null;
         UT2004Bot bot = null;
         int stopTimeout = 1000 * 60 * (360);
         boolean done = false;
+
+        //We will record single paths and restart ucc regularly...
+        int iteration = 0;
         UT2004BotParameters params = task.getBotParams();
+
+        if (isResume) {
+            ExtendedBotNavigationParameters extParams = tryResume((NavigationEvaluationTask) task);
+            if (extParams != null) {
+                params = extParams;
+                iteration = extParams.getIteration() - 1;
+            } else {
+                //No task to resume, just end successfuly
+                return 0;
+            }
+        }
+
         while (!done) {
             try {
                 setupLog(task.getLogPath(), iteration);
@@ -117,11 +129,11 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
                         System.out.printf("EVALUATION ITERATION COMPLETED - Processed paths: %d, Remaining paths: %d", paramsExt.getEvaluationResult().getProcessedCount(), paramsExt.getPathContainer().size());
                         if (paramsExt.getEvaluationResult().getProcessedCount() >= paramsExt.getLimitForCompare() || paramsExt.getPathContainer().isEmpty()) {
                             done = true;
-                            continue;
+                        } else {
+                            params = new ExtendedBotNavigationParameters((INavigationEvaluationTask) task, paramsExt.getPathContainer(), paramsExt.getEvaluationResult());
+                            ((ExtendedBotNavigationParameters) params).setIteration(paramsExt.getIteration() + 1);
                         }
                         exportPathContainer(task, paramsExt.getPathContainer());
-                        params = new ExtendedBotNavigationParameters((INavigationEvaluationTask) task, paramsExt.getPathContainer(), paramsExt.getEvaluationResult());
-                        ((ExtendedBotNavigationParameters) params).setIteration(paramsExt.getIteration() + 1);
                     }
                 }
                 if (status != 0) {
@@ -135,6 +147,11 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
         processResult(task);
 
         return status;
+    }
+
+    @Override
+    public int execute(IEvaluationTask task) {
+        return execute(task, false);
     }
 
     protected void setupLog(String logPath, int iteration) {
@@ -169,8 +186,51 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
     }
 
     private void exportPathContainer(IEvaluationTask task, PathContainer pathContainer) {
-        String path = task.getResultPath() + "/pathcontainer.csv";
+        String path = FileNames.joinPath(task.getResultPath(), FileNames.PATH_CONTAINER_FILE);
         pathContainer.exportToFile(path);
+    }
+
+    private ExtendedBotNavigationParameters tryResume(INavigationEvaluationTask task) {
+
+        File newResultDir = new File(task.getResultPath());
+        File lastResult = null;
+        long lastResultModification = 0;
+        for (File oldResult : newResultDir.getParentFile().listFiles()) {
+            if (!oldResult.isDirectory()) {
+                continue;
+            }
+            if(oldResult.equals(newResultDir)) {
+                continue;
+            }
+            if (oldResult.lastModified() > lastResultModification) {
+                lastResult = oldResult;
+                lastResultModification = oldResult.lastModified();
+            }
+        }
+        newResultDir.delete();
+        if (lastResult == null) {
+            return null; //No suitable result to resume from was found.
+        }
+        File pathContainerFile = FileNames.getFile(lastResult, FileNames.PATH_CONTAINER_FILE);
+        if (!pathContainerFile.exists()) {
+            return null; //No path container file to resume from.
+        }
+        task.setResultPath(lastResult.getAbsolutePath());
+
+        PathContainer pathContainer = new PathContainer(null);
+        pathContainer.buildFromFile(pathContainerFile, false);
+
+        EvaluationResult results = new EvaluationResult(pathContainer.size(), task.getMapName(), null, task.getResultPath());
+
+        File resultFile = FileNames.getFile(lastResult, FileNames.DATA_FILE);
+        if (resultFile.exists()) {
+            results.loadFromFile(resultFile, pathContainer.size());
+        }
+        
+        ExtendedBotNavigationParameters params = new ExtendedBotNavigationParameters(task, pathContainer, results);
+        params.setIteration(results.getProcessedCount() / ServerRunner.getPathRecordsLimit() + 1);
+        
+        return params;
     }
 
 }

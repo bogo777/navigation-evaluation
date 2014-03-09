@@ -36,7 +36,7 @@ public class MapPathsEvaluationTask extends EvaluationTask<MapPathsBotParameters
     private PathType pathType;
     private int batchNumber = 0;
     private boolean relevantOnly = false;
-    private Level level = Level.ALL;
+    private String level = Level.ALL.getName();
 
     private MapPathsEvaluationTask() {
         super(MapPathsBotParameters.class, MapPathsBot.class);
@@ -178,7 +178,7 @@ public class MapPathsEvaluationTask extends EvaluationTask<MapPathsBotParameters
     }
 
     public Level getLogLevel() {
-        return level;
+        return Level.parse(level);
     }
 
     public void setResultBasePath(String basePath) {

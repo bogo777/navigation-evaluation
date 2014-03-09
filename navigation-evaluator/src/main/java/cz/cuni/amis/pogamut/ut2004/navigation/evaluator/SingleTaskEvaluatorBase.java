@@ -47,9 +47,10 @@ public abstract class SingleTaskEvaluatorBase {
         log.setLevel(Level.ALL);
         log.fine("Running SingleTaskEvaluator");
         IEvaluationTask task = EvaluationTaskFactory.build(args);
+        boolean isResume = args.length >= 2 && args[1].equals("--resume");
         log.fine("Task built from args");
         SingleNavigationTaskEvaluator evaluator = new SingleNavigationTaskEvaluator();
-        int result = evaluator.execute(task);
+        int result = evaluator.execute(task, isResume);
         System.exit(result);
     }
 

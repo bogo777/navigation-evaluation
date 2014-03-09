@@ -37,7 +37,7 @@ public class EvaluationTaskFactory {
      * @return 
      */
     public static IEvaluationTask build(String[] args) {
-        if (args.length == 1) {
+        if (args.length >= 1) {
 
             File file = new File(args[0]);
             return build(file);

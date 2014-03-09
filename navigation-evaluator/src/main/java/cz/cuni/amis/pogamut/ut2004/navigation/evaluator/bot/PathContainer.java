@@ -17,6 +17,7 @@
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot;
 
 import cz.cuni.amis.pogamut.base.communication.worldview.object.WorldObjectId;
+import cz.cuni.amis.pogamut.base.utils.math.DistanceUtils;
 import cz.cuni.amis.pogamut.base3d.worldview.IVisionWorldView;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPoint;
 import cz.cuni.amis.utils.collections.MyCollections;
@@ -42,15 +43,19 @@ import java.util.logging.Logger;
  */
 public class PathContainer {
 
-    private int tabooRetryCount = 1;
+    private final int tabooRetryCount = 1;
     IVisionWorldView world;
     private HashMap<WorldObjectId, Set<WorldObjectId>> paths;
     private HashMap<Path, Integer> tabooPaths;
 
+    private Set<NavPoint> starts = null;
+
+    private boolean isInitialized = false;
+
     private Path currentTabooPath = null;
 
     /**
-     * Create container for given worldview.
+     * Create container for given world view.
      *
      * @param world
      *
@@ -59,6 +64,7 @@ public class PathContainer {
         this.world = world;
         paths = new HashMap<WorldObjectId, Set<WorldObjectId>>();
         tabooPaths = new HashMap<Path, Integer>();
+        isInitialized = world != null;
     }
 
     /**
@@ -84,12 +90,16 @@ public class PathContainer {
             ends = paths.get(start);
         }
         if (ends != null) {
+            NavPoint startNavPoint = (NavPoint) world.get(start);
             WorldObjectId end = MyCollections.getRandom(ends);
             ends.remove(end);
             if (ends.isEmpty()) {
                 paths.remove(start);
+                if (getStarts() != null) {
+                    getStarts().remove(startNavPoint);
+                }
             }
-            return new Path((NavPoint) world.get(start), (NavPoint) world.get(end));
+            return new Path(startNavPoint, (NavPoint) world.get(end));
         }
         return null;
     }
@@ -100,25 +110,31 @@ public class PathContainer {
     }
 
     /**
-     * Get path with start at given {@link NavPoint}. TODO: Variant with start
-     * parameter as source for finding path with nearest possible start.
+     * Get path with start at given {@link NavPoint}. When such path doesn't
+     * exist, returns path from nearest {@link NavPoint} from which some path
+     * exists.
      *
      * @param start Where the path should start
      * @return Path to navigate
      *
      */
     public Path getPath(NavPoint start) {
-        Set<WorldObjectId> ends = paths.get(start.getId());
-        if (ends == null) {
-            //No more paths exists!
-            return null;
+        NavPoint pathStart = start;
+        Set<WorldObjectId> ends = paths.get(pathStart.getId());
+        while (ends == null) {
+            getStarts().remove(pathStart);
+            pathStart = DistanceUtils.getNearest(getStarts(), start);
+            ends = paths.get(pathStart.getId());
         }
         WorldObjectId end = MyCollections.getRandom(ends);
         ends.remove(end);
         if (ends.isEmpty()) {
-            paths.remove(start.getId());
+            paths.remove(pathStart.getId());
+            if (getStarts() != null) {
+                getStarts().remove(pathStart);
+            }
         }
-        return new Path(start, (NavPoint) world.get(end));
+        return new Path(pathStart, (NavPoint) world.get(end));
     }
 
     /**
@@ -225,27 +241,31 @@ public class PathContainer {
     /**
      * Loads path container from CSV file.
      *
-     * @param filePath
+     * @param file
      * @param isRepeat
      */
-    void buildFromFile(String repeatFilePath, boolean isRepeat) {
+    public void buildFromFile(File file, boolean isRepeat) {
         paths.clear();
         BufferedReader reader = null;
         try {
-            File repeatFile = new File(repeatFilePath);
-            reader = new BufferedReader(new FileReader(repeatFile));
-            //Skip first line - contains column descriptors
-            reader.readLine();
+            reader = new BufferedReader(new FileReader(file));
+            
+            if(isRepeat) {
+                //Skip first line - contains column descriptors
+                reader.readLine();
+            }
             String line = reader.readLine();
             while (line != null) {
                 String[] splitLine = line.split(";");
-                WorldObjectId startId = WorldObjectId.get(splitLine[isRepeat ? 1 : 0]);
-                WorldObjectId endId = WorldObjectId.get(splitLine[isRepeat ? 2 : 1]);
-                if(!isRepeat && splitLine.length == 3) {
-                    //TODO: Add as taboo path
-                    addPath(startId, endId);
-                } else {
-                    addPath(startId, endId);
+                if (splitLine.length >= (isRepeat ? 3 : 2)) {
+                    WorldObjectId startId = WorldObjectId.get(splitLine[isRepeat ? 1 : 0]);
+                    WorldObjectId endId = WorldObjectId.get(splitLine[isRepeat ? 2 : 1]);
+                    if (!isRepeat && splitLine.length == 3) {
+                        //TODO: Add as taboo path
+                        addPath(startId, endId);
+                    } else {
+                        addPath(startId, endId);
+                    }
                 }
                 line = reader.readLine();
             }
@@ -266,22 +286,22 @@ public class PathContainer {
 
     public void exportToFile(String path) {
         File pathsFile = new File(path);
-        if(isEmpty()) {
+        if (isEmpty()) {
             pathsFile.delete();
             return;
         }
         BufferedWriter writer = null;
         try {
             writer = new BufferedWriter(new FileWriter(pathsFile));
-            
-            for(Entry<WorldObjectId, Set<WorldObjectId>> entry : paths.entrySet()) {
+
+            for (Entry<WorldObjectId, Set<WorldObjectId>> entry : paths.entrySet()) {
                 String start = entry.getKey().getStringId();
-                for(WorldObjectId end : entry.getValue()) {
-                    writer.write(String.format("%s:%s", start, end.getStringId()));
+                for (WorldObjectId end : entry.getValue()) {
+                    writer.write(String.format("%s;%s", start, end.getStringId()));
                     writer.newLine();
                 }
             }
-            for(Entry<Path, Integer> tabooEntry : tabooPaths.entrySet()) {
+            for (Entry<Path, Integer> tabooEntry : tabooPaths.entrySet()) {
                 Path tabooPath = tabooEntry.getKey();
                 writer.write(String.format("%s;%s;%d", tabooPath.getStart().getId().getStringId(), tabooPath.getEnd().getId().getStringId(), tabooEntry.getValue()));
                 writer.newLine();
@@ -332,6 +352,22 @@ public class PathContainer {
 
     public void setWorld(IVisionWorldView world) {
         this.world = world;
+        this.isInitialized = world != null;
+    }
+
+    public boolean isInitialized() {
+        return isInitialized;
+    }
+
+    private Set<NavPoint> getStarts() {
+        if (starts == null && isInitialized) {
+            starts = new HashSet<NavPoint>();
+            for (WorldObjectId startId : paths.keySet()) {
+                NavPoint start = (NavPoint) world.get(startId);
+                starts.add(start);
+            }
+        }
+        return starts;
     }
 
 }

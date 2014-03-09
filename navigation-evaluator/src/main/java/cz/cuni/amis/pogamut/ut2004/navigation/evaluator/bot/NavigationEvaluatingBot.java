@@ -35,6 +35,7 @@ import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.GameInf
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.InitedMessage;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPoint;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.Self;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.ServerRunner;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.EvaluationResult;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.PathResult;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.PathResult.ResultType;
@@ -56,7 +57,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
     private NavigationState state;
     private Date startDate;
     private EvaluationResult result;
-    public static final int PATH_RECORDS_LIMIT = 250;
+    //public static final int PATH_RECORDS_LIMIT = 250;
 
     private boolean waitForRecordStart = false;
     private IPathFuture<ILocated> waitingPath = null;
@@ -414,9 +415,10 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
         if (getParams().isPathRecord()) {
             ExtendedBotNavigationParameters params = getExtendedParams();
             int iteration = params == null ? 1 : params.getIteration();
-            if (processedCount >= iteration * PATH_RECORDS_LIMIT) {
+            if (processedCount >= iteration * ServerRunner.getPathRecordsLimit()) {
                 // Shutdown bot and restart ucc.
                 wrapUpEvaluation();
+                return null;
             }
         }
         log.log(Level.WARNING, "Requested next path, from {0}", start == null ? "NULL" : start);
@@ -446,7 +448,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
         try {
             Thread.sleep(5000);
         } catch (InterruptedException ex) {
-            //Silently ignore
+            throw new RuntimeException(ex);
         }
     }
 
@@ -465,7 +467,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
             result.stopRecording(act, getParams().keepOnlyFailedRecords() && !result.hasFailedResult());
         }
         result.exportAggregate();
-        result.export();
+        result.export(true);
 
         super.botShutdown();
     }

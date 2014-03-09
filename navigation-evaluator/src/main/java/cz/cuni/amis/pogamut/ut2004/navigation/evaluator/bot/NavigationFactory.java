@@ -36,6 +36,7 @@ import cz.cuni.amis.pogamut.ut2004.agent.navigation.stuckdetector.UT2004Distance
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.stuckdetector.UT2004PositionStuckDetector;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.stuckdetector.UT2004TimeStuckDetector;
 import cz.cuni.amis.pogamut.ut2004.bot.impl.UT2004Bot;
+import java.io.File;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -134,7 +135,8 @@ public class NavigationFactory {
     static void initializePathContainer(PathContainer pathContainer, NavigationEvaluatingBot bot) {
         BotNavigationParameters params = bot.getParams();
         if (params.isRepeatTask()) {
-            pathContainer.buildFromFile(params.getRepeatFile(), true);
+            File file = new File(params.getRepeatFile());
+            pathContainer.buildFromFile(file, true);
         } else if (params.isOnlyRelevantPaths()) {
             pathContainer.buildRelevant(bot.getParams().getLimit());
         } else {
