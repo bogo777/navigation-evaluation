@@ -466,6 +466,7 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
         // note: there might be null nodes along the path!
         ILocated located = null;
         navigNextLocation = null;
+        navigNextNode = null;
         navigNextLocationOffset = 0;
         while ((located == null) && navigIterator.hasNext()) {
             // get next node in the path
@@ -584,52 +585,50 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
         // get next node distance
         int localDistance = (int) memory.getLocation().getDistance(navigCurrentLocation.getLocation());
 
-        if (navigCurrentNode == null) {
-            // we do not have extra information about the location we're going to reach
+        // is this next node a teleporter?
+        if (navigCurrentNode != null && navigCurrentNode.isTeleporter()) {
+            navigStage = Stage.TeleporterStage();
+        } // is this next node a mover?
+        else if (navigCurrentNode != null && navigCurrentNode.isLiftCenter()) {
+            // setup mover sequence
+            navigStage = Stage.FirstMoverStage();
+            resetNavigMoverVariables();
+
+            // AREN'T WE ALREADY ON THE LIFT CENTER?
+            if (memory.getLocation().getDistance(navigCurrentNode.getLocation()) < CLOSE_ENOUGH) {
+                // YES WE ARE!
+                navigStage = navigStage.next();
+            }
+        } // are we still moving on mover? 
+        else if (navigStage.mover) {
+            navigStage = navigStage.next();
+            // init the runner
             runner.reset();
-            if (log != null && log.isLoggable(Level.FINE)) {
-                log.log(
-                        Level.FINE, "LoqueNavigator.switchToNextNode(): switch to next location {0}, distance {1}, mover {2}", new Object[]{navigCurrentLocation, localDistance, navigStage.mover});
-            }
-        } else {
-            // is this next node a teleporter?
-            if (navigCurrentNode.isTeleporter()) {
-                navigStage = Stage.TeleporterStage();
-            } else // is this next node a mover?
-            if (navigCurrentNode.isLiftCenter()) {
-                // setup mover sequence
-                navigStage = Stage.FirstMoverStage();
-                resetNavigMoverVariables();
+        } else if (navigStage.teleport) {
+            navigStage = navigStage.next();
+            // init the runner
+            runner.reset();
+        } // no movers & teleports
+        else {
+            // init the runner
+            runner.reset();
+        }
 
-                // AREN'T WE ALREADY ON THE LIFT CENTER?
-                if (memory.getLocation().getDistance(navigCurrentNode.getLocation()) < CLOSE_ENOUGH) {
-                    // YES WE ARE!
-                    navigStage = navigStage.next();
-                }
-            } else // are we still moving on mover?
-            if (navigStage.mover) {
-                navigStage = navigStage.next();
-                // init the runner
-                runner.reset();
-            } else if (navigStage.teleport) {
-                navigStage = navigStage.next();
-                // init the runner
-                runner.reset();
-            } else // no movers & teleports
-            {
-                // init the runner
-                runner.reset();
-            }
-
-            // switch to next node
-            if (log != null && log.isLoggable(Level.FINE)) {
+        // switch to next node
+        if (log != null && log.isLoggable(Level.FINE)) {
+            if (navigCurrentNode != null) {
                 log.fine(
                         "LoqueNavigator.switchToNextNode(): switch to next node " + navigCurrentNode.getId().getStringId()
                         + ", distance " + localDistance
                         + ", reachable " + isReachable(navigCurrentNode)
                         + ", mover " + navigStage.mover
                 );
+                // we do not have extra information about the location we're going to reach
+            } else {
+                log.log(
+                        Level.FINE, "LoqueNavigator.switchToNextNode(): switch to next location {0}, distance {1}, mover {2}", new Object[]{navigCurrentLocation, localDistance, navigStage.mover});
             }
+
         }
 
         // tell the executor that we have moved in the path to the next element
@@ -654,18 +653,19 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
     }
 
     protected boolean isReachable(NavPoint node) {
-        if (node == null) {
-            return true;
-        }
-        int hDistance = (int) memory.getLocation().getDistance2D(node.getLocation());
-        int vDistance = (int) node.getLocation().getDistanceZ(memory.getLocation());
-        double angle;
-        if (hDistance == 0) {
-            angle = vDistance == 0 ? 0 : (vDistance > 0 ? Math.PI / 2 : -Math.PI / 2);
-        } else {
-            angle = Math.atan(vDistance / hDistance);
-        }
-        return Math.abs(vDistance) < 30 && Math.abs(angle) < Math.PI / 4;
+        return true;
+//        if (node == null) {
+//            return true;
+//        }
+//        int hDistance = (int) memory.getLocation().getDistance2D(node.getLocation());
+//        int vDistance = (int) node.getLocation().getDistanceZ(memory.getLocation());
+//        double angle;
+//        if (hDistance == 0) {
+//            angle = vDistance == 0 ? 0 : (vDistance > 0 ? Math.PI / 2 : -Math.PI / 2);
+//        } else {
+//            angle = Math.atan(vDistance / hDistance);
+//        }
+//        return Math.abs(vDistance) < 30 && Math.abs(angle) < Math.PI / 4;
     }
 
     //
@@ -763,9 +763,8 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
         // get the distance from the current node
         int localDistance = (int) memory.getLocation().getDistance(navigCurrentLocation.getLocation());
         // get the distance from the current node (neglecting jumps)
-        int localDistance2 = (int) memory.getLocation().getDistance(
-                Location.add(navigCurrentLocation.getLocation(), new Location(0, 0, 100))
-        );
+        int localDistance2D = (int) memory.getLocation().getDistance2D(navigCurrentLocation.getLocation());
+
         int distanceZ = (int) memory.getLocation().getDistanceZ(navigCurrentLocation);
 
         // where are we going to run to
@@ -794,14 +793,17 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
             log.finest("LoqueNavigator.navigToCurrentNode(): traveling to current node, distance = " + localDistance);
         }
 
-        int testDistance = 200; // default constant suitable for default running 
+        //CHANGED: Distance when to switch to next node -> for our movement on the edges with the navMesh, it needs to be pretty accurate...
+        //ORIGINAL VALUE: 200
+        int testDistance = 40; // default constant suitable for default running 
         if (navigCurrentNode != null && (navigCurrentNode.isLiftCenter() || navigCurrentNode.isLiftExit())) {
             // if we should get to lift exit or the lift center, we must use more accurate constants
-            testDistance = 150;
+            //CHANGED: Original - 150
+            testDistance = 30;
         }
         if (navigCurrentLink != null && (navigCurrentLink.getFlags() & LinkFlag.JUMP.get()) != 0) {
             // we need to jump to reach the destination ... do not switch based on localDistance2
-            localDistance2 = 10000;
+            localDistance2D = 10000;
         }
 
         if (navigCurrentLocation != null && navigCurrentLocation.equals(executor.getPath().get(executor.getPath().size() - 1))
@@ -811,7 +813,7 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
         }
 
         // are we close enough to switch to the next node? (mind the distanceZ particularly!)
-        if (distanceZ < 40 && ((localDistance < testDistance) || (localDistance2 < testDistance))) {
+        if (distanceZ < 40 && ((localDistance < testDistance) || (localDistance2D < testDistance))) {
             // switch navigation to the next node
             if (!switchToNextNode()) {
                 // switch to the direct navigation
@@ -819,6 +821,41 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
                     log.fine("Navigator.navigToCurrentNode(): switching to direct navigation");
                 }
                 return initDirectly(navigDestination);
+            } else {
+                //Send new MOVE command in current iteration.
+                return keepNavigating();
+            }
+        }
+
+        Location botCurrentLocation = memory.getLocation();
+        if (navigCurrentLocation != null && navigLastLocation != null && navigNextLocation != null && botCurrentLocation != null) {
+
+            //Test case for passing navig node without switching target
+            Location navigDirection = navigCurrentLocation.sub(navigLastLocation);
+            if (navigDirection.getLength() > botCurrentLocation.sub(navigLastLocation).getLength()) {
+                //We didn't reach the node yet...
+                //Do nothing
+            } else {
+
+                Location altDirection = navigNextLocation.sub(botCurrentLocation).getNormalized();
+
+                double angle = Math.acos(navigDirection.getNormalized().dot(altDirection));
+
+                if (angle < Math.PI / 2) {
+                    if (botCurrentLocation.getDistance(navigNextLocation) < navigCurrentLocation.getDistance(navigNextLocation)) {
+                        // switch navigation to the next node
+                        if (!switchToNextNode()) {
+                            // switch to the direct navigation
+                            if (log != null && log.isLoggable(Level.FINE)) {
+                                log.fine("Navigator.navigToCurrentNode(): switching to direct navigation");
+                            }
+                            return initDirectly(navigDestination);
+                        } else {
+                            //Send new MOVE command in current iteration.
+                            return keepNavigating();
+                        }
+                    }
+                }
             }
         }
 
@@ -908,13 +945,12 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
             // wait for the current node to come close in both, vert and horiz
             // the horizontal distance can be quite long.. the agent will hop on
             // TODO: There may be problem when LiftExit is more than 400 ut units far from LiftCenter!
-            if (hDistance > 400) {
-                if (log != null && log.isLoggable(Level.WARNING)) {
-                    log.warning("LoqueNavigator.navigThroughMover(" + stage + "): failed to get onto the mover as its 2D distance is > 400, hDistance " + hDistance + ", unsupported!");
-                }
-                return Stage.CRASHED;
-            }
-
+//            if (hDistance > 400) {
+//                if (log != null && log.isLoggable(Level.WARNING)) {
+//                    log.warning("LoqueNavigator.navigThroughMover(" + stage + "): failed to get onto the mover as its 2D distance is > 400, hDistance " + hDistance + ", unsupported!");
+//                }
+//                return Stage.CRASHED;
+//            }
             if (zDistance > 30 && moverRidingUp) // mover is riding UP and is already above us, we won't make it...
             {
                 // run to the last node, the one we need to be waiting on for the mover to come
@@ -988,7 +1024,7 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
                 return navigStage;
             }
 
-            // MOVER HAS ARRIVED TO POSITION FOR EXIST (at least that what we're thinking so...)
+            // MOVER HAS ARRIVED TO POSITION FOR EXIT (at least that what we're thinking so...)
             if (log != null && log.isLoggable(Level.FINER)) {
                 log.finer(
                         "Navigator.navigThroughMover(" + stage + "): exiting the mover"
@@ -1357,17 +1393,16 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
      */
     protected Logger log;
 
-    /*========================================================================*/
-    /**
-     * Constructor.
-     *
-     * @param main Agent's main.
-     * @param memory Loque memory.
-     */
-    public NavMeshNavigator(UT2004Bot bot, AgentInfo info, AdvancedLocomotion move, Logger log) {
-        this(bot, info, move, new NavMeshRunner(bot, info, move, log), log);
-    }
-
+//    /*========================================================================*/
+//    /**
+//     * Constructor.
+//     *
+//     * @param main Agent's main.
+//     * @param memory Loque memory.
+//     */
+//    public NavMeshNavigator(UT2004Bot bot, AgentInfo info, AdvancedLocomotion move, Logger log) {
+//        this(bot, info, move, new NavMeshRunner(bot, info, move, log), log);
+//    }
     /**
      * Constructor.
      *

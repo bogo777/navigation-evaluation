@@ -63,7 +63,7 @@ public class PathResult {
      * @return
      */
     public String export() {
-        return String.format("%s;%s;%s;%s;%d;%f;%d;%d;%s;%s", path.getId(), path.getStart().getId().getStringId(), path.getEnd().getId().getStringId(), type, duration, path.getLength(), path.getJumps(), path.getLifts(), failedAt == null ? "" : failedAt.toString(), nearestNavPoint == null ? "" : nearestNavPoint.getId().getStringId());
+        return String.format("%s;%s;%s;%s;%d;%f;%d;%d;%s;%s", path.getId(), path.getStart().getId().getStringId(), path.getEnd().getId().getStringId(), type, duration, path.getLength(), path.getJumps(), path.getLifts(), failedAt == null ? "" : failedAt.toString().replace(";", "|"), nearestNavPoint == null ? "" : nearestNavPoint.getId().getStringId());
     }
 
 }

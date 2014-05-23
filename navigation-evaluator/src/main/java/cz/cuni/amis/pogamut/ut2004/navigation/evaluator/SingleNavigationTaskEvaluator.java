@@ -36,6 +36,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.PrintStream;
+import java.util.logging.Level;
 import org.zeroturnaround.zip.ZipUtil;
 
 /**
@@ -86,6 +87,7 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
                 setupLog(task.getLogPath(), iteration);
                 ++iteration;
                 server = run(task.getMapName());
+                System.out.println("Setting control port to: " + server.getControlPort());
                 System.setProperty("pogamut.ut2004.server.port", Integer.toString(server.getControlPort()));
                 UT2004BotRunner<UT2004Bot, UT2004BotParameters> botRunner = new UT2004BotRunner<UT2004Bot, UT2004BotParameters>(task.getBotClass(), "EvaluatingBot", server.getHost(), server.getBotPort());
                 botRunner.setLogLevel(task.getLogLevel());

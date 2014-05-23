@@ -54,7 +54,7 @@ import java.util.HashSet;
  *
  * @author Bogo
  */
-public class NavigationEvaluatingBot extends EvaluatingBot {
+public class NavigationEvaluatingBotOrigNav extends EvaluatingBot {
 
     private PathContainer pathContainer;
     private Path currentPath;
@@ -76,7 +76,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
 
     private boolean teleportFailed = false;
 
-    public NavigationEvaluatingBot() {
+    public NavigationEvaluatingBotOrigNav() {
     }
 
     public BotNavigationParameters getParams() {
@@ -447,7 +447,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
     }
 
     public static void main(String args[]) throws PogamutException {
-        new UT2004BotRunner(NavigationEvaluatingBot.class, "NavigationEvaluatingBot").setMain(true).setLogLevel(Level.INFO).startAgent();
+        new UT2004BotRunner(NavigationEvaluatingBotOrigNav.class, "NavigationEvaluatingBot").setMain(true).setLogLevel(Level.INFO).startAgent();
     }
 
     private Path getNextPath(NavPoint start) {

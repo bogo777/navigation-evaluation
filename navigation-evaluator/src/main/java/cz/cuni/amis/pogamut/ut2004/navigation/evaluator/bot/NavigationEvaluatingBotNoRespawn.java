@@ -22,12 +22,10 @@ import java.util.logging.Level;
 import cz.cuni.amis.pogamut.base.agent.navigation.IPathExecutorState;
 import cz.cuni.amis.pogamut.base.agent.navigation.IPathFuture;
 import cz.cuni.amis.pogamut.base.agent.navigation.PathExecutorState;
-import cz.cuni.amis.pogamut.base.utils.math.DistanceUtils;
 import cz.cuni.amis.pogamut.base3d.worldview.object.ILocated;
 import cz.cuni.amis.pogamut.base3d.worldview.object.Location;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.astar.UT2004AStar;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.floydwarshall.FloydWarshallMap;
-import cz.cuni.amis.pogamut.ut2004.agent.navigation.navmesh.NavMesh;
 import cz.cuni.amis.pogamut.ut2004.bot.impl.UT2004Bot;
 import cz.cuni.amis.pogamut.ut2004.bot.impl.UT2004BotModuleController;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbcommands.Initialize;
@@ -36,7 +34,6 @@ import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.ConfigC
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.GameInfo;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.InitedMessage;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPoint;
-import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPointNeighbourLink;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.Self;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.ServerRunner;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.EvaluationResult;
@@ -45,7 +42,6 @@ import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.PathResult.ResultTy
 import cz.cuni.amis.pogamut.ut2004.utils.UT2004BotRunner;
 import cz.cuni.amis.utils.exception.PogamutException;
 import cz.cuni.amis.utils.flag.FlagListener;
-import java.util.HashSet;
 
 /**
  * Bot for evaluating navigations. Initialized with navigation given by
@@ -54,7 +50,7 @@ import java.util.HashSet;
  *
  * @author Bogo
  */
-public class NavigationEvaluatingBot extends EvaluatingBot {
+public class NavigationEvaluatingBotNoRespawn extends EvaluatingBot {
 
     private PathContainer pathContainer;
     private Path currentPath;
@@ -68,15 +64,8 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
 
     private boolean failedToBuildPath = false;
     private boolean failedInNavigate = false;
-    private boolean isRespawning = false;
 
-    private ILocated respawnLocation = null;
-
-    private long lastRespawn = Long.MAX_VALUE;
-
-    private boolean teleportFailed = false;
-
-    public NavigationEvaluatingBot() {
+    public NavigationEvaluatingBotNoRespawn() {
     }
 
     public BotNavigationParameters getParams() {
@@ -139,7 +128,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
      */
     @Override
     public Initialize getInitializeCommand() {
-        return new Initialize().setName("NavigationEvaluatingBot").setManualSpawn(false);
+        return new Initialize().setName("NavigationEvaluatingBot");
     }
 
     /**
@@ -158,7 +147,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
         if (extendedParams == null) {
 
             pathContainer = new PathContainer(world);
-            NavigationFactory.initializePathContainer(pathContainer, this);
+            //NavigationFactory.initializePathContainer(pathContainer, this);
 
             result = new EvaluationResult(pathContainer.size(), info.game.getMapName(), log, getParams().getResultPath());
         } else {
@@ -170,7 +159,6 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
         }
         currentPath = getNextPath(null);
 
-        //initRespawn(currentPath.getStart());
         state = NavigationState.NotMoving;
 
         // TODO: Figure out what to do with this?
@@ -229,7 +217,6 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
         // mark that another logic iteration has began
         log.info("--- Logic iteration ---");
 
-        isRespawning = false;
         // maybe we should end? WE should not, we can have valid path in
         // currentPath
         // if (pathContainer.isEmpty()) {
@@ -269,24 +256,12 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
                 state = NavigationState.NotMoving;
                 log.info("Reached start of path...");
             } else {
-                if (teleportFailed) {
-                    log.info("Navigating to start from nearest NavPoint.");
-                    navigation.navigate(currentPath.getStart());
-                    if (new Date().getTime() - lastRespawn > 15000) {
-                        state = NavigationState.FailedOnWayToStart;
-                        navigation.stopNavigation();
-                    }
-                } else {
-
-                    log.info("Respawn to start in progress...");
-                    if (new Date().getTime() - lastRespawn > 1000) {
-                        //For NavPoint with too low Z.
-                        teleportFailed = true;
-                        NavPoint nearest = getNearestLinkedNavPoint(currentPath.getStart());
-                        initRespawn(nearest);
-                        navigation.navigate(currentPath.getStart());
-                    }
+                // Do nothing
+                if (!navigation.isNavigating()) {
+                    state = NavigationState.FailedOnWayToStart;
+                    failedInNavigate = true;
                 }
+                log.info("Navigating to start in progress...");
                 return;
             }
         }
@@ -349,10 +324,6 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
                 path = waitingPath;
             } else {
                 // Standard path computing
-                if(pathPlanner == null && getParams().getPathPlanner().equals("navMesh")) {
-                    pathPlanner = new NavMesh(world, log);
-                    ((NavMesh) pathPlanner).load(world.getSingle(GameInfo.class), navPoints.getNavPoints());
-                }
                 path = pathPlanner.computePath(currentPath.getStart(), currentPath.getEnd());
             }
             while (path == null || path.get() == null) {
@@ -364,7 +335,6 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
                 if (origStart.equals(currentPath.getStart())) {
                     path = pathPlanner.computePath(currentPath.getStart(), currentPath.getEnd());
                 } else {
-                    initRespawn(currentPath.getStart());
                     state = NavigationState.NotMoving;
                     return;
                 }
@@ -384,19 +354,16 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
             navigation.navigate(path);
             state = NavigationState.Navigating;
         } else {
-            log.info("Starting respawn to the start.");
-            initRespawn(currentPath.getStart());
+            // IPathFuture<ILocated> pathToStart =
+            // pathPlanner.computePath(info.getLocation(),
+            // currentPath.getStart());
+            // if(pathToStart == null || pathToStart.get() == null) {
+            // //Failed to build path to start navpoint of current path.
+            // }
+            log.info("Starting navigation to the start.");
+            navigation.navigate(currentPath.getStart());
             state = NavigationState.OnWayToStart;
-            teleportFailed = false;
         }
-    }
-
-    private NavPoint getNearestLinkedNavPoint(NavPoint start) {
-        HashSet<NavPoint> neigbours = new HashSet<NavPoint>();
-        for (NavPointNeighbourLink edge : start.getIncomingEdges().values()) {
-            neigbours.add(edge.getFromNavPoint());
-        }
-        return DistanceUtils.getNearest(neigbours, start);
     }
 
     /**
@@ -407,16 +374,9 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
      */
     @Override
     public void botKilled(BotKilled event) {
-        if (!isRespawning) {
-            if (respawnLocation == null) {
-                log.info("Bot died!");
-                this.state = this.state == NavigationState.OnWayToStart ? NavigationState.FailedOnWayToStart : NavigationState.Failed;
-                navigation.stopNavigation();
-            }
-            //respawn();
-        } else {
-            isRespawning = false;
-        }
+        log.info("Bot died!");
+        this.state = this.state == NavigationState.OnWayToStart ? NavigationState.FailedOnWayToStart : NavigationState.Failed;
+        navigation.stopNavigation();
     }
 
     /**
@@ -447,7 +407,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
     }
 
     public static void main(String args[]) throws PogamutException {
-        new UT2004BotRunner(NavigationEvaluatingBot.class, "NavigationEvaluatingBot").setMain(true).setLogLevel(Level.INFO).startAgent();
+        new UT2004BotRunner(NavigationEvaluatingBotNoRespawn.class, "NavigationEvaluatingBot").setMain(true).setLogLevel(Level.INFO).startAgent();
     }
 
     private Path getNextPath(NavPoint start) {
@@ -493,7 +453,7 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
     }
 
     private void sendMessageToGame(String message) {
-        body.getCommunication().sendGlobalTextMessage(message);
+        //act.act(new SendMessage(UnrealId.NONE, message, 0, true, 5d));
         //act.act(new ShowText(bot.getName(), message, Color.yellow, 10d, true));
     }
 
@@ -510,24 +470,5 @@ public class NavigationEvaluatingBot extends EvaluatingBot {
         result.export(true);
 
         super.botShutdown();
-    }
-
-    private void initRespawn(ILocated location) {
-        respawnLocation = location;
-        log.warning("Killing bot to init respawning of bot.");
-        isRespawning = true;
-        lastRespawn = new Date().getTime();
-        respawn();
-    }
-
-    private void respawn() {
-        if (respawnLocation == null) {
-            log.warning("Respawning bot.");
-            body.getAction().respawn();
-        } else {
-            log.log(Level.WARNING, "Respawning bot to location {0}.", respawnLocation);
-            body.getAction().respawn(respawnLocation);
-            respawnLocation = null;
-        }
     }
 }

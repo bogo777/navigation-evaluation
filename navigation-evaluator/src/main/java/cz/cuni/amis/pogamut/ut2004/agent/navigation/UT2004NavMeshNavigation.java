@@ -23,8 +23,11 @@ import cz.cuni.amis.pogamut.base.utils.math.DistanceUtils;
 import cz.cuni.amis.pogamut.base3d.worldview.object.ILocated;
 import cz.cuni.amis.pogamut.base3d.worldview.object.Location;
 import static cz.cuni.amis.pogamut.ut2004.agent.navigation.UT2004Navigation.AT_PLAYER;
+import cz.cuni.amis.pogamut.ut2004.agent.navigation.navmesh.NavMesh;
 import cz.cuni.amis.pogamut.ut2004.bot.impl.UT2004Bot;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbcommands.Stop;
+import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.BotKilled;
+import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.EndMessage;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.Item;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPoint;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.Player;
@@ -57,7 +60,7 @@ public class UT2004NavMeshNavigation implements IUT2004Navigation {
     /**
      * NavMesh that is used for path planning.
      */
-    protected IPathPlanner<ILocated> pathPlanner;
+    protected NavMesh pathPlanner;
     
     /**
      * TODO: More like GetBackToNavMesh
@@ -744,5 +747,51 @@ public class UT2004NavMeshNavigation implements IUT2004Navigation {
             currentTarget = pathList.get(pathList.size() - 1);
         }
         return true;
+    }
+    
+    // ===========
+    // CONSTRUCTOR
+    // ===========
+    /**
+     * Here you may specify any custom UT2004Navigation parts.
+     *
+     * @param bot
+     * @param ut2004PathExecutor
+     * @param pathPlanner
+     * @param getBackOnPath
+     * @param runStraight
+     */
+    public UT2004NavMeshNavigation(UT2004Bot bot, IUT2004PathExecutor ut2004PathExecutor, IPathPlanner<NavPoint> pathPlanner, IUT2004GetBackToNavGraph getBackOnPath, IUT2004RunStraight runStraight) {
+        this(bot, ut2004PathExecutor, pathPlanner, getBackOnPath, runStraight, EXTEND_PATH_THRESHOLD);
+    }
+
+    /**
+     * Here you may specify any custom UT2004Navigation parts.
+     *
+     * @param bot
+     * @param ut2004PathExecutor
+     * @param pathPlanner
+     * @param getBackOnPath
+     * @param runStraight
+     */
+    public UT2004NavMeshNavigation(UT2004Bot bot, IUT2004PathExecutor ut2004PathExecutor, NavMesh navMesh, IUT2004GetBackToNavGraph getBackOnPath, IUT2004RunStraight runStraight, double extendPathThreshold) {
+        this.log = bot.getLogger().getCategory(this.getClass().getSimpleName());
+        this.bot = bot;
+
+        this.pathPlanner = pathPlanner;
+        this.pathExecutor = ut2004PathExecutor;
+
+        this.getBackToNavGraph = getBackOnPath;
+        this.runStraight = runStraight;
+
+        this.extendPathThreshold = extendPathThreshold;
+
+        initListeners();
+    }
+    
+    private void initListeners() {
+        this.pathExecutor.getState().addListener(myUT2004PathExecutorStateListener);
+        bot.getWorldView().addEventListener(EndMessage.class, endMessageListener);
+        bot.getWorldView().addEventListener(BotKilled.class, botKilledMessageListener);
     }
 }

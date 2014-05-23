@@ -96,7 +96,7 @@ public class UT2004AcceleratedPathExecutor<PATH_ELEMENT extends ILocated> extend
                     self.getEmotLeft(), self.getEmotCenter(), self.getEmotRight(), self.getBubble(),
                     self.getAnim());
             //log.fine("LOCATION UPDATE - Updating location from LocationUpdate message...");
-            log.log(Level.FINE, "LOCATION UPDATE - L: {0}, V: {1}, R: {2}, SimTime: {3}", new Object[]{locationUpdate.getLoc(), locationUpdate.getVel(), locationUpdate.getRot(), locationUpdate.getSimTime()});
+            log.log(Level.FINEST, "LOCATION UPDATE - L: {0}, V: {1}, R: {2}, SimTime: {3}", new Object[]{locationUpdate.getLoc(), locationUpdate.getVel(), locationUpdate.getRot(), locationUpdate.getSimTime()});
             bot.getWorldView().notifyImmediately(newSelf);
             //selfListener.notify(new WorldObjectFirstEncounteredEvent<Self>(newSelf, event.getSimTime()));
             eventLocationUpdateMessage();

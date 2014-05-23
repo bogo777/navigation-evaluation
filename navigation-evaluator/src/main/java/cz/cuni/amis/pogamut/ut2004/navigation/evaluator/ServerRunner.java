@@ -92,10 +92,14 @@ public class ServerRunner {
     static String getStatsBasePath() {
         return properties.getProperty("stats.dir");
     }
+    
+    static int getProcessorMultiplier() {
+        return Integer.parseInt(properties.getProperty("proc.multiplier"));
+    }
 
     public ServerRunner() {
         //TODO: Is this duplicating output?
-        log.setLevel(Level.ALL);
+        log.setLevel(Level.ALL); 
         ConsoleHandler handler = new ConsoleHandler();
         handler.setFormatter(new SimpleFormatter());
         handler.setLevel(Level.ALL);
@@ -235,7 +239,7 @@ public class ServerRunner {
     private static boolean hasCapacityForMultiEvaluation() {
         //    return true;
         int threshold = 3;
-        int available = Runtime.getRuntime().availableProcessors();
+        int available = Runtime.getRuntime().availableProcessors() * ServerRunner.getProcessorMultiplier();
         return available >= threshold;
     }
 
@@ -246,7 +250,7 @@ public class ServerRunner {
      */
     private boolean hasCapacity() {
         int used = 0 + evaluations.size() * 2;
-        int available = Runtime.getRuntime().availableProcessors();
+        int available = Runtime.getRuntime().availableProcessors() * ServerRunner.getProcessorMultiplier();
         return used < available;
     }
 

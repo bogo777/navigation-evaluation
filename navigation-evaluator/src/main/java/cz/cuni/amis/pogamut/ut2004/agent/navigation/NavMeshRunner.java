@@ -23,6 +23,7 @@ import cz.cuni.amis.pogamut.base3d.worldview.object.Location;
 import cz.cuni.amis.pogamut.unreal.communication.messages.UnrealId;
 import cz.cuni.amis.pogamut.ut2004.agent.module.sensor.AgentInfo;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.loquenavigator.KefikRunner;
+import cz.cuni.amis.pogamut.ut2004.agent.navigation.navmesh.NavMesh;
 import cz.cuni.amis.pogamut.ut2004.bot.command.AdvancedLocomotion;
 import cz.cuni.amis.pogamut.ut2004.bot.impl.UT2004Bot;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbcommands.Move;
@@ -43,6 +44,10 @@ import java.util.logging.Logger;
  * contain point on the nav mesh, which should be navigable by simple running,
  * and off-mesh connections, which we will handle as original runner.
  *
+ * Jump computing is working with exact locations, no reserves. Needed edge
+ * should be achived by delay in executing the jump. TODO: Revise & possibly add
+ * some reserve to computation.
+ *
  *
  * @author Bogo
  */
@@ -52,7 +57,23 @@ public class NavMeshRunner implements IUT2004PathRunner {
     private AgentInfo memory;
     private AdvancedLocomotion body;
     private Logger log;
-    private IWorldEventListener<?> myCollisionsListener;
+
+    private JumpBoundaries jumpBoundaries;
+
+    /**
+     * Our custom listener for WallCollision messages.
+     */
+    IWorldEventListener<WallCollision> myCollisionsListener = new IWorldEventListener<WallCollision>() {
+        @Override
+        public void notify(WallCollision event) {
+            lastCollidingEvent = event;
+        }
+
+    };
+
+    private JumpModule jumpModule;
+
+    private CollisionDetector collisionDetector;
 
     // MAINTAINED CONTEXT
     /**
@@ -120,12 +141,6 @@ public class NavMeshRunner implements IUT2004PathRunner {
      */
     private boolean jumpRequired;
 
-    /**
-     * In case of fall ({@link KefikRunner#distanceZ} < 0), how far can we get
-     * with normal fall.
-     */
-    private double fallDistance;
-
     // CONTEXT PASSED INTO runToLocation
     /**
      * Current context of the
@@ -171,9 +186,22 @@ public class NavMeshRunner implements IUT2004PathRunner {
      * If we have collided in last second we will signal it
      */
     private static final double WALL_COLLISION_THRESHOLD = 1;
+    private static final double JUMP_COMPUTATION_FAILED = 8192;
 
     public void reset() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // reset working info
+        runnerStep = 0;
+        jumpStep = 0;
+        collisionNum = 0;
+        collisionSpot = null;
+        lastCollidingEvent = null;
+        distance = 0;
+        distance2D = 0;
+        distanceZ = 0;
+        velocity = 0;
+        velocityZ = 0;
+        jumpRequired = false;
+        jumpBoundaries = null;
     }
 
     public boolean runToLocation(Location runningFrom, Location firstLocation, Location secondLocation, ILocated focus, NavPointNeighbourLink navPointsLink, boolean reachable) {
@@ -192,27 +220,28 @@ public class NavMeshRunner implements IUT2004PathRunner {
         distance = memory.getLocation().getDistance(firstLocation);
         distance2D = memory.getLocation().getDistance2D(firstLocation);
         distanceZ = firstLocation.getDistanceZ(memory.getLocation());
-        if (distanceZ >= 0) {
-            fallDistance = 0;
-        } else {
-            fallDistance = getFallDistance(distanceZ);
-        }
+
         velocity = memory.getVelocity().size();
         velocityZ = memory.getVelocity().z;
-        jumpRequired
-                = !reachable
-                || (link != null
-                && (((link.getFlags() & LinkFlag.JUMP.get()) != 0)
-                || (link.isForceDoubleJump())
-                || (link.getNeededJump() != null)));
-        
-        
+        jumpRequired = !reachable || jumpModule.needsJump(link);
+
+        if (jumpBoundaries == null || jumpBoundaries.getLink() != link) {
+            jumpBoundaries = jumpModule.computeJumpBoundaries(link);
+            debug("Computed jump boundaries. Jumpable: " + jumpBoundaries.isJumpable() + ", Start: " + jumpBoundaries.getTakeOffMin() + ", Ene: " + jumpBoundaries.getTakeOffMax());
+        }
+
         logDebugData(firstLocation, secondLocation, focus, reachable);
 
         // DELIBERATION
         if (runnerStep <= 1) {
             debug("FIRST STEP - start running towards new location");
             move(firstLocation, secondLocation, focus);
+        }
+
+        //internal collision detector
+        if (collisionDetector.isColliding(memory.getLocation(), velocity, distance)) {
+            debug("Internal collision detector signalling collision, solving by force JUMPING!");
+            return initJump(true);
         }
 
         // are we jumping already?
@@ -234,7 +263,9 @@ public class NavMeshRunner implements IUT2004PathRunner {
             }
         }
 
-        if (velocity < 5 && runnerStep > 1) {
+        //Get bot some time to start running - there is delay and we use ACC navigation, so the steps increase fast
+        log.finer("TRACE: RunnerStep: " + runnerStep);
+        if (velocity < 5 && runnerStep > 5) {
             debug("velocity is zero and we're in the middle of running");
             if (link != null && (link.getFromNavPoint().isLiftCenter() || link.getFromNavPoint().isLiftExit())) {
                 if (link.getFromNavPoint().isLiftCenter()) {
@@ -270,14 +301,13 @@ public class NavMeshRunner implements IUT2004PathRunner {
             debug("distance      = " + distance);
             debug("distance2D    = " + distance2D);
             debug("distanceZ     = " + distanceZ);
-            debug("fallDistance  = " + fallDistance);
             debug("velocity      = " + velocity);
             debug("velocityZ     = " + velocityZ);
             debug("jumpRequired  = " + jumpRequired
                     + (!reachable ? " NOT_REACHABLE" : "")
                     + (link == null
-                            ? ""
-                            : ((link.getFlags() & LinkFlag.JUMP.get()) != 0 ? " JUMP_FLAG" : "") + (link.isForceDoubleJump() ? " DOUBLE_JUMP_FORCED" : "") + (link.getNeededJump() != null ? " AT[" + link.getNeededJump() + "]" : ""))
+                    ? ""
+                    : ((link.getFlags() & LinkFlag.JUMP.get()) != 0 ? " JUMP_FLAG" : "") + (link.isForceDoubleJump() ? " DOUBLE_JUMP_FORCED" : "") + (link.getNeededJump() != null ? " AT[" + link.getNeededJump() + "]" : ""))
             );
             debug("reachable     = " + reachable);
             if (link != null) {
@@ -299,8 +329,9 @@ public class NavMeshRunner implements IUT2004PathRunner {
      * @param agentInfo
      * @param locomotion
      * @param log
+     * @param navMesh
      */
-    public NavMeshRunner(UT2004Bot bot, AgentInfo agentInfo, AdvancedLocomotion locomotion, Logger log) {
+    public NavMeshRunner(UT2004Bot bot, AgentInfo agentInfo, AdvancedLocomotion locomotion, Logger log, NavMesh navMesh) {
         // setup reference to agent
         NullCheck.check(bot, "bot");
         this.bot = bot;
@@ -316,23 +347,9 @@ public class NavMeshRunner implements IUT2004PathRunner {
         if (this.log == null) {
             this.log = bot.getLogger().getCategory(this.getClass().getSimpleName());
         }
-    }
 
-    /**
-     * Return how far the normal falling will get us. (Using guessed consts...)
-     *
-     * @param distanceZ
-     * @return
-     */
-    private double getFallDistance(double distanceZ) {
-        distanceZ = Math.abs(distanceZ);
-        if (distanceZ == 60) {
-            return 160;
-        }
-        if (distanceZ < 60) {
-            return 2.66667 * distanceZ;
-        }
-        return 1.3714 * distanceZ + 35.527;
+        this.jumpModule = new JumpModule(navMesh, this.log);
+        this.collisionDetector = new CollisionDetector();
     }
 
     private void debug(String message) {
@@ -340,72 +357,361 @@ public class NavMeshRunner implements IUT2004PathRunner {
             log.log(Level.FINER, "Runner: {0}", message);
         }
     }
-    
+
     private void move(ILocated firstLocation, ILocated secondLocation, ILocated focus) {
-    	Move move = new Move();
-    	if (firstLocation != null) {
-    		move.setFirstLocation(firstLocation.getLocation());
-    	}
-    	if (secondLocation != null) {
-    		move.setSecondLocation(secondLocation.getLocation());
-    	}
-    	
-    	if (focus != null) {
-    		if (focus instanceof Player) {
-    			move.setFocusTarget((UnrealId)((IWorldObject)focus).getId());
-    		} else {	
-    			move.setFocusLocation(focus.getLocation());
-    		}
-    	}
-    	
-    	debug("MOVING: " + move);    	
-    	bot.getAct().act(move);
+        Move move = new Move();
+        if (firstLocation != null) {
+
+            move.setFirstLocation(firstLocation.getLocation());
+            if (secondLocation == null || secondLocation.equals(firstLocation)) {
+                //We want to reach end of the path, we won't extend the second location.
+                move.setSecondLocation(firstLocation.getLocation());
+            } else {
+                //Extend the second location so the bot doesn't slow down, when it's near the original target.
+                double dist = firstLocation.getLocation().getDistance(secondLocation.getLocation());
+                double quantifier = 1 + (200 / dist);
+
+                Location extendedSecondLocation = firstLocation.getLocation().interpolate(secondLocation.getLocation(), quantifier);
+                move.setSecondLocation(extendedSecondLocation);
+            }
+        } else if (secondLocation != null) {
+            //First location was not set
+            move.setSecondLocation(secondLocation.getLocation());
+        }
+
+        if (focus != null) {
+            if (focus instanceof Player) {
+                move.setFocusTarget((UnrealId) ((IWorldObject) focus).getId());
+            } else {
+                move.setFocusLocation(focus.getLocation());
+            }
+        }
+
+        debug("MOVING: " + move);
+        bot.getAct().act(move);
     }
 
     private boolean resolveCollision() {
         // are we colliding at a new spot?
-        if (
-            // no collision yet
-            (collisionSpot == null)
-            // or the last collision is far away
-            || (memory.getLocation().getDistance2D(collisionSpot) > 120)
-        ) {
+        if ( // no collision yet
+                (collisionSpot == null)
+                // or the last collision is far away
+                || (memory.getLocation().getDistance2D(collisionSpot) > 120)) {
             // setup new collision spot info
-        	if (log != null && log.isLoggable(Level.FINER)) log.finer("Runner.resolveCollision(): collision");
+            if (log != null && log.isLoggable(Level.FINER)) {
+                log.finer("Runner.resolveCollision(): collision");
+            }
             collisionSpot = memory.getLocation();
             collisionNum = 1;
             // meanwhile: keep running to the location..
             move(firstLocation, secondLocation, focus);
             return true;
-        }
-        // so, we were already colliding here before..
+        } // so, we were already colliding here before..
         // try to solve the problem according to how long we're here..
-        else { 
-            return initJump(true);
+        else {
+            //Wait a while if the collision hasn't resolved by itself.
+            if (collisionNum > 8) {
+                if (log != null && log.isLoggable(Level.FINER)) {
+                    log.finer("Runner.resolveCollision(): Solving collision by FORCE JUMPING");
+                }
+                return initJump(true);
+            } else {
+                ++collisionNum;
+                // meanwhile: keep running to the location..
+                move(firstLocation, secondLocation, focus);
+                return true;
+            }
         }
     }
 
     private boolean isColliding() {
-        if (lastCollidingEvent == null) return false;
-    	debug("isColliding():"+"(memory.getTime():" + memory.getTime() + " - (lastCollidingEvent.getSimTime() / 1000):" + (lastCollidingEvent.getSimTime() / 1000) +" <= WALL_COLLISION_THRESHOLD:" + WALL_COLLISION_THRESHOLD +  " )");
-    	if (memory.getTime() - (lastCollidingEvent.getSimTime() / 1000) <= WALL_COLLISION_THRESHOLD ) {
-    		debug("isColliding():return true;");
-    		return true;
-    	}
-    	
-    	return false;
+        if (lastCollidingEvent == null) {
+            return false;
+        }
+        debug("isColliding():" + "(memory.getTime():" + memory.getTime() + " - (lastCollidingEvent.getSimTime() / 1000):" + (lastCollidingEvent.getSimTime() / 1000) + " <= WALL_COLLISION_THRESHOLD:" + WALL_COLLISION_THRESHOLD + " )");
+        if (memory.getTime() - (lastCollidingEvent.getSimTime() / 1000) <= WALL_COLLISION_THRESHOLD) {
+            debug("isColliding():return true;");
+            return true;
+        }
+
+        return false;
     }
-    
+
     private boolean resolveJump() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        debug("resolveJump(): called");
+
+        // cut the jumping distance2D of the next jump, this is to allow to
+        // jump more than once per one runner request, while ensuring that
+        // the last jump will always land exactly on the destination..
+        //TODO: Changed - not exactly sure what it was for, hoping for 1 jump per link
+        int jumpDistance2D = (int) distance2D; // ((int) distance2D) % 1000;
+
+        debug("resolveJump(): jumpDistance2D = " + jumpDistance2D);
+
+        // follow the deliberation about the situation we're currently in
+        boolean jumpIndicated = false;      // whether we should jump now
+        boolean mustJumpIfIndicated = false; // whether we MUST jump NOW
+
+        boolean goingToJump = false;
+
+        // deliberation, whether we may jump
+        if (jumpModule.needsJump(link)) {
+            debug("resolveJump(): deliberation - jumping condition present");
+            jumpIndicated = true;
+        }
+
+        if (jumpDistance2D < 250) {
+            debug("resolveJump(): we've missed all jumping opportunities (jumpDistance2D < 250)");
+            if (runnerStep > 1) {
+                debug("resolveJump(): and runnerStep > 1, if indicated we will be forced to jump right now");
+                mustJumpIfIndicated = true;
+            } else {
+                debug("resolveJump(): but runnerStep <= 1, can't force jump yet");
+            }
+        }
+
+        debug("resolveJump(): jumpIndicated       = " + jumpIndicated);
+        debug("resolveJump(): mustJumpIfIndicated = " + mustJumpIfIndicated);
+
+        if (jumpIndicated && mustJumpIfIndicated) {
+            if (distanceZ > 0) {
+                debug("resolveJump(): we MUST jump!");
+                return prepareJump(true); // true == forced jump
+            } else {
+                debug("resolveJump(): we MUST fall down with a jump!");
+                return prepareJump(true); // true == forced jump
+            }
+        } else if (jumpIndicated) {
+            debug("resolveJump(): we should jump");
+            return prepareJump(false); // false == we're not forcing to jump immediately         	
+        } else {
+            debug("resolveJump(): we do not need to jump, waiting to reach the right spot to jump from");
+            // otherwise, wait for the right double-jump distance2D
+            // meanwhile: keep running to the location..
+            move(firstLocation, secondLocation, focus);
+            return true;
+        }
     }
 
-    private boolean initJump(boolean forceJump) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    /*========================================================================*/
+    /**
+     * This method is called from {@link KefikRunner#resolveJump()} that has
+     * decided that the jump is necessary to reach the the target (it is already
+     * known that distanceZ > 0).
+     * <p>
+     * <p>
+     * jumpForced == true ... we will try to run no matter what
+     * <p>
+     * <p>
+     * jumpForced == false ... we will check whether the time is right for
+     * jumping assessing the {@link KefikRunner#distanceZ}.
+     *
+     * @return whether we should reach the target
+     */
+    private boolean prepareJump(boolean jumpForced) {
+        debug("prepareJump(): called");
+
+        Location direction = Location.sub(firstLocation, memory.getLocation()).setZ(0);
+        direction = direction.getNormalized();
+        Location velocityDir = new Location(memory.getVelocity().asVector3d()).setZ(0);
+        velocityDir = velocityDir.getNormalized();
+        Double jumpAngleDeviation = Math.acos(direction.dot(velocityDir));
+        jumpForced |= jumpBoundaries.isPastBoundaries(memory.getLocation());
+        Double jumpVelocity = Math.min(UnrealUtils.MAX_VELOCITY, velocity + 80);
+
+        boolean angleSuitable = !jumpAngleDeviation.isNaN() && jumpAngleDeviation < (Math.PI / 9);
+
+        debug("prepareJump(): jumpAngleDeviation = " + jumpAngleDeviation);
+        debug("prepareJump(): angleSuitable      = " + angleSuitable);
+
+        if (jumpForced) {
+            debug("prepareJump(): jump is forced, bypassing jump checks!");
+        } else {
+            debug("prepareJump(): jump is not forced, checking jump conditions");
+
+            if (!jumpModule.isJumpable(memory.getLocation(), jumpBoundaries.getLandingTarget(), jumpVelocity)) {
+                debug("prepareJump(): not jumpable! Start: " + memory.getLocation() + " Target: " + jumpBoundaries.getLandingTarget() + " Velocity: " + velocity + " Jump Velocity: " + jumpVelocity);
+                debug("prepareJump(): proceeding with the straight movement to gain speed");
+                move(firstLocation, secondLocation, focus);
+                return true;
+            }
+
+            if (!angleSuitable) {
+                debug("prepareJump(): angle is not suitable for jumping (angle > 20 degrees)");
+                debug("prepareJump(): proceeding with the straight movement to gain speed");
+                move(firstLocation, secondLocation, focus);
+                return true;
+            }
+
+            //Waiting for ideal JUMP conditions
+            if (jumpBoundaries.isJumpable() && jumpBoundaries.getTakeOffMax().getDistance2D(memory.getLocation()) > IDEAL_JUMP_RESERVE) {
+                boolean angleIdeal = !jumpAngleDeviation.isNaN() && jumpAngleDeviation < (Math.PI / 90);
+                if (!angleIdeal) {
+                    debug("prepareJump(): proceeding with the straight movement - waiting for ideal jump ANGLE");
+                    move(firstLocation, secondLocation, focus);
+                    return true;
+                }
+
+                if (velocity < UnrealUtils.MAX_VELOCITY - 50) {
+                    debug("prepareJump(): proceeding with the straight movement - waiting for ideal speed");
+                    move(firstLocation, secondLocation, focus);
+                    return true;
+                }
+            } else {
+                debug("prepareJump(): passed ideal reserve spot, lower requirments on speed and angle");
+            }
+
+            debug("prepareJump(): velocity & angle is OK!");
+        }
+
+        debug("prepareJump(): JUMP");
+        return initJump(jumpForced);
+
+    }
+    private static final int IDEAL_JUMP_RESERVE = 80;
+
+    /**
+     * We have to jump up (distanceZ > 0) if there is a possibility that we get
+     * there by jumping (i.e., params for jump exists that should get us there)
+     * or 'jumpForced is true'.
+     * <p>
+     * <p>
+     * Decides whether we need single / double jump and computes the best args
+     * for jump command according to current velocity.
+     *
+     * @param jumpForced
+     */
+    private boolean initJump(boolean jumpForced) {
+        debug("initJump(): called");
+
+        boolean doubleJump = true;
+        Double jumpForce = Double.NaN;
+        Double jumpVelocity = Math.min(UnrealUtils.MAX_VELOCITY, velocity + 80);
+
+        if (!jumpBoundaries.isJumpable()) {
+            debug("initJump(): jump could not be made (distanceZ = " + distanceZ + " > 130)");
+            if (jumpForced) {
+                debug("initJump(): but jump is being forced!");
+            } else {
+                debug("initJump(): jump is not forced ... we will wait till the bot reach the right jumping spot");
+                move(firstLocation, secondLocation, focus);
+                jumpStep = 0; // we have not performed the JUMP
+                return true;
+            }
+        }
+        
+        
+        Location direction = Location.sub(firstLocation, memory.getLocation()).setZ(0);
+        direction = direction.getNormalized();
+        Location velocityDir = new Location(memory.getVelocity().asVector3d()).setZ(0);
+        velocityDir = velocityDir.getNormalized();
+        Double jumpAngleCos = direction.dot(velocityDir);
+        debug("initJump(): Computed jump angle: " + Math.acos(jumpAngleCos) * (180 / Math.PI));
+
+        if (!jumpBoundaries.isJumpable()) {
+            debug("Jump boundaries not present! We shouldn't be trying to JUMP!");
+            jumpForce = Double.NaN;
+        } else if (!jumpBoundaries.isInBoundaries(memory.getLocation())) {
+
+            if (jumpBoundaries.isPastBoundaries(memory.getLocation())) {
+                debug("Already passed max take-off point, forcing jump!");
+                jumpForced = true;
+                jumpForce = jumpModule.computeJump(memory.getLocation(), jumpBoundaries.getLandingTarget(), jumpVelocity, jumpAngleCos);
+            } else {
+                debug("Not within jump boundaries! We should'n t JUMP");
+                jumpForce = Double.NaN;
+            }
+        } else {
+
+            jumpForce = jumpModule.computeJump(memory.getLocation(), jumpBoundaries.getLandingTarget(), jumpVelocity, jumpAngleCos);
+            if (jumpForce < UnrealUtils.FULL_JUMP_FORCE) {
+                doubleJump = false;
+            }
+
+        }
+
+        if (jumpForce.isNaN()) {
+            if (jumpForced) {
+                jumpStep = 1; // we have performed the JUMP
+                debug("initJump(): Forcing jump - MAX!");
+                return jump(true, UnrealUtils.FULL_DOUBLEJUMP_DELAY, UnrealUtils.FULL_DOUBLEJUMP_FORCE);
+            }
+
+            //We cannot jump
+            debug("initJump(): Jump failed to compute, continuing with move! Computed force: " + jumpForce);
+            move(firstLocation, secondLocation, focus);
+            return true;
+        } else if (jumpForce < 0) {
+            //We don't need to jump, so we will set
+            debug("initJump(): We don't need to jump, continuing with move! Computed force: " + jumpForce);
+            jumpStep = 1;
+            return true;
+        } else {
+            jumpStep = 1; // we have performed the JUMP
+            return jump(doubleJump, UnrealUtils.FULL_DOUBLEJUMP_DELAY, jumpForce);
+        }
+
     }
 
+    /*========================================================================*/
+    /**
+     * Perform jump right here and now with provided args.
+     */
+    private boolean jump(boolean doubleJump, double delay, double force) {
+        if (doubleJump) {
+            debug("DOUBLE JUMPING (delay = " + delay + ", force = " + force + ")");
+        } else {
+            debug("JUMPING (delay = " + delay + ", force = " + force + ")");
+        }
+        body.jump(doubleJump, delay, force);
+
+        return true;
+    }
+
+    /*========================================================================*/
+    /**
+     * Follows single-jump sequence steps.
+     *
+     * @return True, if no problem occured.
+     */
     private boolean iterateJumpSequence() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        debug("iterateJumpSequence(): called");
+        // what phase of the jump sequence?
+        switch (jumpStep) {
+            // the first phase: wait for the jump
+            case 1:
+                // did the agent started the jump already?
+                if (velocityZ > 100) {
+                    debug("iterateJumpSequence(): jumping in progress (velocityZ > 100), increasing jumpStep");
+                    jumpStep++;
+                }
+                // meanwhile: just wait for the jump to start
+                debug("iterateJumpSequence(): issuing move command to the target (just to be sure)");
+                move(firstLocation, secondLocation, focus);
+                return true;
+
+            //  the last phase: finish the jump
+            default:
+                // did the agent started to fall already
+                jumpStep++;
+                if (velocityZ <= 0.01) {
+
+                    if (velocityZ > lastVelocityZ) {
+                        debug("iterateJumpSequence(): jump has ended");
+                        lastVelocityZ = 0.02;
+                        //jumpStep = 0;
+                    } else {
+                        lastVelocityZ = velocityZ;
+                    }
+
+                }
+                debug("iterateJumpSequence(): continuing movement to the target");
+                move(firstLocation, secondLocation, focus);
+                return true;
+        }
+
     }
+
+    private double lastVelocityZ = 0.02;
 
 }

@@ -17,8 +17,8 @@
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot;
 
 import cz.cuni.amis.pogamut.base.communication.worldview.object.WorldObjectId;
-import cz.cuni.amis.pogamut.base.utils.math.DistanceUtils;
 import cz.cuni.amis.pogamut.base3d.worldview.IVisionWorldView;
+import cz.cuni.amis.pogamut.unreal.communication.messages.UnrealId;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPoint;
 import cz.cuni.amis.utils.collections.MyCollections;
 import java.io.BufferedReader;
@@ -28,8 +28,10 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -42,17 +44,19 @@ import java.util.logging.Logger;
  * @author Bogo
  */
 public class PathContainer {
-
+    
     private final int tabooRetryCount = 1;
     IVisionWorldView world;
     private HashMap<WorldObjectId, Set<WorldObjectId>> paths;
     private HashMap<Path, Integer> tabooPaths;
-
+    
     private Set<NavPoint> starts = null;
-
+    
     private boolean isInitialized = false;
-
+    
     private Path currentTabooPath = null;
+    private boolean loadFromFile;
+    private File dataFile;
 
     /**
      * Create container for given world view.
@@ -65,6 +69,11 @@ public class PathContainer {
         paths = new HashMap<WorldObjectId, Set<WorldObjectId>>();
         tabooPaths = new HashMap<Path, Integer>();
         isInitialized = world != null;
+    }
+    
+    public PathContainer(Object object, boolean loadFromFile, File dataFile) {
+        this.loadFromFile = loadFromFile;
+        this.dataFile = dataFile;
     }
 
     /**
@@ -103,7 +112,7 @@ public class PathContainer {
         }
         return null;
     }
-
+    
     private void resetTabooPath() {
         tabooPaths.remove(currentTabooPath);
         currentTabooPath = null;
@@ -119,12 +128,17 @@ public class PathContainer {
      *
      */
     public Path getPath(NavPoint start) {
+        if (isEmpty()) {
+            return null;
+        }
         NavPoint pathStart = start;
         Set<WorldObjectId> ends = paths.get(pathStart.getId());
         while (ends == null) {
             getStarts().remove(pathStart);
-            pathStart = DistanceUtils.getNearest(getStarts(), start);
-            ends = paths.get(pathStart.getId());
+            paths.remove(pathStart.getId());
+            return null; //Possibly remove in time
+            //pathStart = DistanceUtils.getNearest(getStarts(), start);
+            //ends = paths.get(pathStart.getId());
         }
         WorldObjectId end = MyCollections.getRandom(ends);
         ends.remove(end);
@@ -153,12 +167,16 @@ public class PathContainer {
      */
     public void buildRelevant(int limit) {
         Map<WorldObjectId, NavPoint> navPoints = world.getAll(NavPoint.class);
+        //Hack
         HashSet<WorldObjectId> relevantNavPoints = new HashSet<WorldObjectId>();
         for (NavPoint navPoint : navPoints.values()) {
             if (navPoint.isInvSpot() || navPoint.isPlayerStart()) {
                 relevantNavPoints.add(navPoint.getId());
             }
         }
+//        for (String navPoint : triteNavPoints) {
+//            relevantNavPoints.add(UnrealId.get(navPoint));
+//        }
         buildPaths(relevantNavPoints, limit);
     }
 
@@ -197,18 +215,18 @@ public class PathContainer {
             return size + (currentTabooPath == null ? tabooPaths.size() : (tabooPaths.size() - 1));
         }
     }
-
+    
     void build(int limit) {
         Map<WorldObjectId, NavPoint> navPoints = world.getAll(NavPoint.class);
         Set<WorldObjectId> navPointsIds = new HashSet<WorldObjectId>(navPoints.keySet());
         buildPaths(navPointsIds, limit);
     }
-
+    
     private void buildPaths(Set<WorldObjectId> navPoints, int limit) {
         paths.clear();
         int pathCount = navPoints.size() * (navPoints.size() - 1);
         boolean buildIncrementaly = limit < pathCount / 5;
-
+        
         if (limit < 0 || !buildIncrementaly) {
             HashSet<WorldObjectId> relevantEnds = new HashSet<WorldObjectId>(navPoints);
             for (WorldObjectId navPointId : navPoints) {
@@ -250,7 +268,7 @@ public class PathContainer {
         try {
             reader = new BufferedReader(new FileReader(file));
             
-            if(isRepeat) {
+            if (isRepeat) {
                 //Skip first line - contains column descriptors
                 reader.readLine();
             }
@@ -283,7 +301,40 @@ public class PathContainer {
             }
         }
     }
-
+    
+    public void removePathsFromFile(String path) {
+        paths.clear();
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(new FileReader(path));
+            //Skip first line - contains column descriptors
+            reader.readLine();
+            String line = reader.readLine();
+            while (line != null) {
+                String[] splitLine = line.split(";");
+                if (splitLine.length >= 3) {
+                    WorldObjectId startId = WorldObjectId.get(splitLine[1]);
+                    WorldObjectId endId = WorldObjectId.get(splitLine[2]);
+                    removePath(startId, endId);
+                }
+                line = reader.readLine();
+            }
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(PathContainer.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (IOException ex) {
+            Logger.getLogger(PathContainer.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            try {
+                if (reader != null) {
+                    reader.close();
+                }
+            } catch (IOException ex) {
+                Logger.getLogger(PathContainer.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
+    }
+    
     public void exportToFile(String path) {
         File pathsFile = new File(path);
         if (isEmpty()) {
@@ -293,7 +344,7 @@ public class PathContainer {
         BufferedWriter writer = null;
         try {
             writer = new BufferedWriter(new FileWriter(pathsFile));
-
+            
             for (Entry<WorldObjectId, Set<WorldObjectId>> entry : paths.entrySet()) {
                 String start = entry.getKey().getStringId();
                 for (WorldObjectId end : entry.getValue()) {
@@ -319,9 +370,9 @@ public class PathContainer {
                 Logger.getLogger(PathContainer.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
-
+        
     }
-
+    
     private int addPath(WorldObjectId start, WorldObjectId end) {
         Set<WorldObjectId> pathsFromStart = paths.get(start);
         if (pathsFromStart == null) {
@@ -333,7 +384,7 @@ public class PathContainer {
         }
         return 0;
     }
-
+    
     public boolean addTabooPath(Path path) {
         if (currentTabooPath != null && !currentTabooPath.equals(path)) {
             resetTabooPath();
@@ -349,16 +400,19 @@ public class PathContainer {
         }
         return true;
     }
-
+    
     public void setWorld(IVisionWorldView world) {
         this.world = world;
         this.isInitialized = world != null;
+        if (isInitialized && loadFromFile) {
+            //bui
+        }
     }
-
+    
     public boolean isInitialized() {
         return isInitialized;
     }
-
+    
     private Set<NavPoint> getStarts() {
         if (starts == null && isInitialized) {
             starts = new HashSet<NavPoint>();
@@ -369,5 +423,20 @@ public class PathContainer {
         }
         return starts;
     }
-
+    
+    private void removePath(WorldObjectId startId, WorldObjectId endId) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+    
+    private List<String> triteNavPoints = Arrays.asList("DM-1on1-Trite.PathNode37",
+       //     "DM-1on1-Trite.InventorySpot68",
+       //     "DM-1on1-Trite.InventorySpot70",
+       //     "DM-1on1-Trite.InventorySpot112",
+      //      "DM-1on1-Trite.PlayerStart6",
+            "DM-1on1-Trite.InventorySpot72",
+            "DM-1on1-Trite.InventorySpot89",
+            "DM-1on1-Trite.InventorySpot106",
+            "DM-1on1-Trite.InventorySpot105",
+            "DM-1on1-Trite.InventorySpot98");
+    
 }

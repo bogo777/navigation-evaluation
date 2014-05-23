@@ -35,7 +35,9 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Date;
 import java.util.HashSet;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -58,6 +60,8 @@ public class EvaluationResult {
     private int failedToStartCount = 0;
     private int failedInNavigateCount = 0;
     private int failedToStartInNavigateCount = 0;
+    
+    private int idx = 0;
 
     private String resultPath;
     private boolean isInitialized;
@@ -266,13 +270,8 @@ public class EvaluationResult {
     }
 
     private String getRecordName() {
-        int last = resultPath.length();
-        for (int i = 0; i < 4; i++) {
-            last = resultPath.lastIndexOf('/', last - 1);
-        }
-        String relevantPath = resultPath.substring(last + 1);
-        String name = relevantPath.replace("/", "_");
-        return name + "record";
+        
+        return getIdx() + "_";
     }
 
     public String getLogFile() {
@@ -317,6 +316,14 @@ public class EvaluationResult {
 
     public boolean isInitialized() {
         return isInitialized;
+    }
+    
+    private int getIdx() {
+        if(idx == 0) {
+            Random r = new Random(new Date().getTime());
+            idx = r.nextInt(1000000) + 1;
+        }
+        return idx;
     }
 
     public void loadFromFile(File resultFile, int remaining) {
