@@ -20,6 +20,7 @@ import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.RecordType;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.EvaluationTaskFactory;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.IEvaluationTask;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.JumpInspectingTask;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapEnvelopeTask;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapPathsBatchTaskCreator;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapPathsEvaluationTask.PathType;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.NavigationEvaluationBatchTaskCreator;
@@ -39,7 +40,8 @@ public class TaskFileGenerator {
     
     public static final boolean isLab = true;
 
-    public static String statsPath = "base:";
+    //public static String statsPath = "base:";
+    public static String statsPath = "C:/Temp/Pogamut/stats/envelopes";
 
     public static void main(String args[]) {
         
@@ -83,7 +85,9 @@ public class TaskFileGenerator {
 
         //myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("navigation", "fwMap", maps, true, -1, statsPath, RecordType.PATH_FAILED, Level.WARNING));
        // myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("navigation", "fwMap", MapInfo.getAllBRMaps(), true, -1, statsPath, RecordType.PATH_FAILED, Level.WARNING));
-        myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("navigation", "fwMap", MapInfo.getAllMaps(), true, 8000, statsPath, RecordType.NONE, Level.OFF));
+        //myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("acc", "navMesh", MapInfo.getAllMaps(), true, -1, statsPath, RecordType.PATH_FAILED, Level.OFF));
+        
+        myTasks.addAll(MapEnvelopeTask.createBatch(MapInfo.getAllMaps(), statsPath));
         
         //myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch(Arrays.asList("navigation", "acc"), Arrays.asList("fwMap", "navMesh"), "CTF-1on1-Joust", true, -1, statsPath, RecordType.PATH_FAILED));
 
@@ -99,7 +103,7 @@ public class TaskFileGenerator {
 //        myTasks.add(jumpTask);
 
         for (IEvaluationTask task : myTasks) {
-            EvaluationTaskFactory.toXml(task, "C:/Temp/Pogamut/big_maps/");
+            EvaluationTaskFactory.toXml(task, "C:/Temp/Pogamut/envelope/");
         }
     }
 }
