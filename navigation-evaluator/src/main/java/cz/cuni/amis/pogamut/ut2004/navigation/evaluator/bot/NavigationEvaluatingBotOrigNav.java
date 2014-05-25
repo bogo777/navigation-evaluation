@@ -158,7 +158,7 @@ public class NavigationEvaluatingBotOrigNav extends EvaluatingBot {
         if (extendedParams == null) {
 
             pathContainer = new PathContainer(world);
-            NavigationFactory.initializePathContainer(pathContainer, this);
+            //NavigationFactory.initializePathContainer(pathContainer, this);
 
             result = new EvaluationResult(pathContainer.size(), info.game.getMapName(), log, getParams().getResultPath());
         } else {

@@ -838,10 +838,16 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
             } else {
 
                 Location altDirection = navigNextLocation.sub(botCurrentLocation).getNormalized();
-
                 double angle = Math.acos(navigDirection.getNormalized().dot(altDirection));
 
-                if (angle < Math.PI / 2) {
+                boolean isZOk = true;
+                if (navigCurrentLocation.z < navigNextLocation.z) {
+                    isZOk = botCurrentLocation.z > navigCurrentLocation.z - 30 && botCurrentLocation.z < navigNextLocation.z + 30;
+                } else {
+                    isZOk = botCurrentLocation.z < navigCurrentLocation.z + 30 && botCurrentLocation.z > navigNextLocation.z - 30;
+                }
+
+                if (angle < Math.PI / 2 && isZOk) {
                     if (botCurrentLocation.getDistance(navigNextLocation) < navigCurrentLocation.getDistance(navigNextLocation)) {
                         // switch navigation to the next node
                         if (!switchToNextNode()) {

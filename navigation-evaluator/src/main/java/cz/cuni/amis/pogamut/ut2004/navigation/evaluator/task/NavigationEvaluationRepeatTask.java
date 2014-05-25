@@ -20,9 +20,9 @@ import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.RecordType;
 import java.util.logging.Level;
 
 /**
- * Special case of {@link NavigationEvaluationTask}. 
- * Repeats evaluation with parameters and paths taken from previous evaluation. 
- * Initialized by supplied evaluation result.
+ * Special case of {@link NavigationEvaluationTask}. Repeats evaluation with
+ * parameters and paths taken from previous evaluation. Initialized by supplied
+ * evaluation result.
  *
  * @author Bogo
  */
@@ -30,20 +30,23 @@ public class NavigationEvaluationRepeatTask extends NavigationEvaluationTask {
 
     private String repeatFile;
 
+    public NavigationEvaluationRepeatTask() {
+    }
+
     /**
      * Default constructor.
-     * 
+     *
      * @param repeatFile
      * @param navigation
      * @param pathPlanner
      * @param resultPath
-     * @param recordType 
+     * @param recordType
      */
     public NavigationEvaluationRepeatTask(String repeatFile, String navigation, String pathPlanner, String resultPath, RecordType recordType) {
         super(navigation, pathPlanner, null, true, -1, resultPath, recordType, Level.ALL);
         this.repeatFile = repeatFile;
         int end = repeatFile.length();
-        for(int i = 0; i < 2; i++) {
+        for (int i = 0; i < 2; i++) {
             end = repeatFile.lastIndexOf('/', end - 1);
         }
         int start = repeatFile.lastIndexOf('/', end - 1);
@@ -52,8 +55,8 @@ public class NavigationEvaluationRepeatTask extends NavigationEvaluationTask {
 
     /**
      * Get file with previous result.
-     * 
-     * @return 
+     *
+     * @return
      */
     public String getRepeatFile() {
         return repeatFile;

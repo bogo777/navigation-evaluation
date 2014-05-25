@@ -187,6 +187,7 @@ public class NavMeshRunner implements IUT2004PathRunner {
      */
     private static final double WALL_COLLISION_THRESHOLD = 1;
     private static final double JUMP_COMPUTATION_FAILED = 8192;
+    private boolean fallDownJump;
 
     public void reset() {
         // reset working info
@@ -202,6 +203,7 @@ public class NavMeshRunner implements IUT2004PathRunner {
         velocityZ = 0;
         jumpRequired = false;
         jumpBoundaries = null;
+        fallDownJump = false;
     }
 
     public boolean runToLocation(Location runningFrom, Location firstLocation, Location secondLocation, ILocated focus, NavPointNeighbourLink navPointsLink, boolean reachable) {
@@ -452,8 +454,6 @@ public class NavMeshRunner implements IUT2004PathRunner {
         boolean jumpIndicated = false;      // whether we should jump now
         boolean mustJumpIfIndicated = false; // whether we MUST jump NOW
 
-        boolean goingToJump = false;
-
         // deliberation, whether we may jump
         if (jumpModule.needsJump(link)) {
             debug("resolveJump(): deliberation - jumping condition present");
@@ -516,7 +516,7 @@ public class NavMeshRunner implements IUT2004PathRunner {
         Location velocityDir = new Location(memory.getVelocity().asVector3d()).setZ(0);
         velocityDir = velocityDir.getNormalized();
         Double jumpAngleDeviation = Math.acos(direction.dot(velocityDir));
-        jumpForced |= jumpBoundaries.isPastBoundaries(memory.getLocation());
+        jumpForced |= runnerStep > 1 && jumpBoundaries.isPastBoundaries(memory.getLocation());
         Double jumpVelocity = Math.min(UnrealUtils.MAX_VELOCITY, velocity + 80);
 
         boolean angleSuitable = !jumpAngleDeviation.isNaN() && jumpAngleDeviation < (Math.PI / 9);
@@ -599,8 +599,7 @@ public class NavMeshRunner implements IUT2004PathRunner {
                 return true;
             }
         }
-        
-        
+
         Location direction = Location.sub(firstLocation, memory.getLocation()).setZ(0);
         direction = direction.getNormalized();
         Location velocityDir = new Location(memory.getVelocity().asVector3d()).setZ(0);
@@ -613,17 +612,17 @@ public class NavMeshRunner implements IUT2004PathRunner {
             jumpForce = Double.NaN;
         } else if (!jumpBoundaries.isInBoundaries(memory.getLocation())) {
 
-            if (jumpBoundaries.isPastBoundaries(memory.getLocation())) {
+            if (runnerStep > 1 && jumpBoundaries.isPastBoundaries(memory.getLocation())) {
                 debug("Already passed max take-off point, forcing jump!");
                 jumpForced = true;
-                jumpForce = jumpModule.computeJump(memory.getLocation(), jumpBoundaries.getLandingTarget(), jumpVelocity, jumpAngleCos);
+                jumpForce = jumpModule.computeJump(memory.getLocation(), jumpBoundaries, jumpVelocity, jumpAngleCos);
             } else {
                 debug("Not within jump boundaries! We should'n t JUMP");
                 jumpForce = Double.NaN;
             }
         } else {
 
-            jumpForce = jumpModule.computeJump(memory.getLocation(), jumpBoundaries.getLandingTarget(), jumpVelocity, jumpAngleCos);
+            jumpForce = jumpModule.computeJump(memory.getLocation(), jumpBoundaries, jumpVelocity, jumpAngleCos);
             if (jumpForce < UnrealUtils.FULL_JUMP_FORCE) {
                 doubleJump = false;
             }
@@ -644,8 +643,38 @@ public class NavMeshRunner implements IUT2004PathRunner {
         } else if (jumpForce < 0) {
             //We don't need to jump, so we will set
             debug("initJump(): We don't need to jump, continuing with move! Computed force: " + jumpForce);
-            jumpStep = 1;
-            return true;
+            if (jumpBoundaries.isJumpable()) {
+                //TODO: Jump down
+
+                Location movementDirection = jumpBoundaries.getLandingTarget().sub(jumpBoundaries.getTakeOffMax()).setZ(0).getNormalized();
+                Location meshDirection = jumpBoundaries.getTakeoffEdgeDirection();
+                if (meshDirection == null) {
+                    meshDirection = jumpModule.getNearestMeshDirection(memory.getLocation(), movementDirection);
+                }
+                if (meshDirection == null) {
+                    //TODO: Refactor
+                    debug("initJump(): Fall solved by not jumping, as angle is suitable. Mesh direction is NULL.");
+                    jumpStep = 1;
+                    return true;
+                }
+                double fallAngleCos = meshDirection.setZ(0).getNormalized().dot(movementDirection);
+                double takeOffDistance = jumpBoundaries.getLandingTarget().getDistance2D(jumpBoundaries.getTakeOffMax());
+                if (Math.abs(fallAngleCos) > Math.cos(Math.PI / 2.5)) {
+                    //Not direct approach, we should propably jump a little.
+                    debug("initJump(): Not direct approach to fall, we should jump a little. Angle: " + Math.acos(fallAngleCos) * (180 / Math.PI));
+                    fallDownJump = true;
+                    jumpBoundaries.setLandingTarget(jumpBoundaries.getTakeOffMax().interpolate(jumpBoundaries.getLandingTarget(), 1 + (IDEAL_JUMP_RESERVE / takeOffDistance)));
+                    return true;
+                } else {
+                    debug("initJump(): Fall solved by not jumping, as angle is suitable. AngleCos: " + fallAngleCos);
+                    jumpStep = 1;
+                    return true;
+                }
+            } else {
+                debug("initJump(): Fall solved by not jumping, as angle is suitable. Boundaries not jumpable.");
+                jumpStep = 1;
+                return true;
+            }
         } else {
             jumpStep = 1; // we have performed the JUMP
             return jump(doubleJump, UnrealUtils.FULL_DOUBLEJUMP_DELAY, jumpForce);

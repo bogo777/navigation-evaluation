@@ -49,7 +49,7 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
 
     public int execute(IEvaluationTask task, boolean isResume) {
         //We can run the task without path record in standard Evaluator... 
-        if (!task.getClass().isAssignableFrom(NavigationEvaluationTask.class)) {
+        if (!NavigationEvaluationTask.class.isAssignableFrom(task.getClass())) {
             return super.execute(task);
         } else {
             NavigationEvaluationTask nTask = (NavigationEvaluationTask) task;

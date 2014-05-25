@@ -24,6 +24,8 @@ import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapEnvelopeTask;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapPathsBatchTaskCreator;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapPathsEvaluationTask.PathType;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.NavigationEvaluationBatchTaskCreator;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.NavigationEvaluationRepeatTask;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.NavigationEvaluationTask;
 import java.io.File;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -87,7 +89,7 @@ public class TaskFileGenerator {
        // myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("navigation", "fwMap", MapInfo.getAllBRMaps(), true, -1, statsPath, RecordType.PATH_FAILED, Level.WARNING));
         //myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch("acc", "navMesh", MapInfo.getAllMaps(), true, -1, statsPath, RecordType.PATH_FAILED, Level.OFF));
         
-        myTasks.addAll(MapEnvelopeTask.createBatch(MapInfo.getAllMaps(), statsPath));
+        //myTasks.addAll(MapEnvelopeTask.createBatch(MapInfo.getAllMaps(), statsPath));
         
         //myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch(Arrays.asList("navigation", "acc"), Arrays.asList("fwMap", "navMesh"), "CTF-1on1-Joust", true, -1, statsPath, RecordType.PATH_FAILED));
 
@@ -95,15 +97,15 @@ public class TaskFileGenerator {
 //        xstream.from
 
         //DM-Crash task
-//        NavigationEvaluationTask taskRepeat = new NavigationEvaluationRepeatTask("C:/Temp/Pogamut/stats/navigation_fwMap/DM-1on1-Crash/160114_112055/data.csv", "navigation", "fwMap", "C:/Temp/Pogamut/stats/", RecordType.FULL);
-//        myTasks.add(taskRepeat);
+        NavigationEvaluationTask taskRepeat = new NavigationEvaluationRepeatTask("C:/Temp/Pogamut/stats/navigation_fwMap/DM-1on1-Crash/160114_112055/data.csv", "acc", "navMesh", "C:/Temp/Pogamut/stats/", RecordType.PATH_FAILED);
+        myTasks.add(taskRepeat);
         
 //        JumpInspectingTask jumpTask = new JumpInspectingTask();
 //        jumpTask.setResultPath(statsPath);
 //        myTasks.add(jumpTask);
 
         for (IEvaluationTask task : myTasks) {
-            EvaluationTaskFactory.toXml(task, "C:/Temp/Pogamut/envelope/");
+            EvaluationTaskFactory.toXml(task, "C:/Temp/Pogamut/repeat/");
         }
     }
 }
