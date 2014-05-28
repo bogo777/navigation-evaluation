@@ -29,16 +29,18 @@ public class JumpBoundaries {
 
     private Location takeOffMin;
     private Location takeOffMax;
+    private Location takeoffEdgeDirection;
 
     private Location landingTarget;
-    
+
     private Location targetEdgeDirection;
     private NavPointNeighbourLink link;
 
-    public JumpBoundaries(NavPointNeighbourLink link, Location takeOffMin, Location takeOffMax, Location target, Location targetEdgeDirection) {
+    public JumpBoundaries(NavPointNeighbourLink link, Location takeOffMin, Location takeOffMax, Location takeoffEdgeDirection, Location target, Location targetEdgeDirection) {
         this.link = link;
         this.takeOffMin = takeOffMin;
         this.takeOffMax = takeOffMax;
+        this.takeoffEdgeDirection = takeoffEdgeDirection;
         this.landingTarget = target;
         this.targetEdgeDirection = targetEdgeDirection;
         this.jumpable = true;
@@ -104,15 +106,23 @@ public class JumpBoundaries {
     }
 
     boolean isPastBoundaries(Location botLocation) {
-        if(jumpable) {
+        if (jumpable) {
             return botLocation.getDistance(landingTarget) < takeOffMax.getDistance(landingTarget);
         } else {
             return false;
         }
     }
-    
+
     public boolean isJumpUp() {
         return jumpable && landingTarget.z > takeOffMax.z;
+    }
+
+    public Location getTargetEdgeDirection() {
+        return targetEdgeDirection;
+    }
+
+    public Location getTakeoffEdgeDirection() {
+        return takeoffEdgeDirection;
     }
 
 }

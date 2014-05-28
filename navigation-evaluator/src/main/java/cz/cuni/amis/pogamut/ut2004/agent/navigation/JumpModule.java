@@ -19,6 +19,7 @@ package cz.cuni.amis.pogamut.ut2004.agent.navigation;
 import cz.cuni.amis.pogamut.base3d.worldview.object.Location;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.navmesh.NavMesh;
 import cz.cuni.amis.pogamut.ut2004.agent.navigation.navmesh.NavMeshConstants;
+import cz.cuni.amis.pogamut.ut2004.agent.navigation.navmesh.NavMeshPolygon;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPoint;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPointNeighbourLink;
 import cz.cuni.amis.pogamut.ut2004.utils.LinkFlag;
@@ -61,6 +62,8 @@ public class JumpModule {
     private static final double MAX_SINGLE_JUMP_HEIGHT = 60;
     private static final double NAVMESH_Z_COORD_CORRECTION = 20;
     private static final double SPEED_BOOST_DELAY = 0.100;
+    private static final double BOT_RADIUS = 70;
+    private static final double JUMP_PEEK_TIME = 0.39;
 
     public JumpModule(NavMesh mesh, Logger log) {
         this.navMesh = mesh;
@@ -91,7 +94,8 @@ public class JumpModule {
         Vector2d linkDirection = new Vector2d(linkDirection3d.x, linkDirection3d.y);
 
         //double startDistanceFromEdge = navMesh.getDistanceFromEdge(startLocation, linkDirection);
-        Location startBorderPoint = getBorderPoint(startLocation, endLocation).getPoint();
+        BorderPoint startBorder = getBorderPoint(startLocation, endLocation);
+        Location startBorderPoint = startBorder.getPoint();
 
         //Get landing edge of the mesh + offset
         Vector2d negatedLinkDirection = new Vector2d(linkDirection);
@@ -141,7 +145,7 @@ public class JumpModule {
 
         } while (!boundaryFound);
 
-        return new JumpBoundaries(jumpLink, currentBoundary, startBorderPoint, endBorderPoint.getPoint(), endBorderPoint.getDirection());
+        return new JumpBoundaries(jumpLink, currentBoundary, startBorderPoint, startBorder.getDirection(), endBorderPoint.getPoint(), endBorderPoint.getDirection());
     }
     private static final int BOUNDARY_THRESHOLD = 50;
 
@@ -259,29 +263,46 @@ public class JumpModule {
         return false;
     }
 
-    public Double computeJump(Location start, Location end, double velocity, double jumpAngleCos) {
+    public Double computeJump(Location start, JumpBoundaries boundaries, double velocity, double jumpAngleCos) {
         if (log.isLoggable(Level.FINER)) {
-            log.log(Level.FINER, "Computing jump. Start: {0} End: {1} Velocity: {2}", new Object[]{start, end, velocity});
+            log.log(Level.FINER, "Computing jump. Start: {0} End: {1} Velocity: {2}", new Object[]{start, boundaries.getLandingTarget(), velocity});
         }
 
-        //TODO: Add take-off delay
-        
-        //TODO: Added angle distance correction
-        
-        double distance2d = start.getDistance2D(end);
-        if (log.isLoggable(Level.FINER)) {
-            log.log(Level.FINER, "Computing jump. Distance2D: {0}", distance2d);
-        }
-        distance2d = start.getDistance2D(end) / jumpAngleCos;
-        if (log.isLoggable(Level.FINER)) {
-            log.log(Level.FINER, "Computing jump. Distance2D after angle correction: {0}", distance2d);
-        }
-        
-        double targetZ = end.z - start.z;
+        double distance2d = getDistance2D(start, boundaries.getLandingTarget(), jumpAngleCos);
+
+        double targetZ = boundaries.getLandingTarget().z - start.z;
         if (log.isLoggable(Level.FINER)) {
             log.log(Level.FINER, "Computing jump. Target Z: {0}", targetZ);
         }
-        
+
+        Double force = computeJump(targetZ, distance2d, velocity, jumpAngleCos);
+
+        if (force == Double.NaN || force < 0) {
+            return force;
+        }
+
+        Location collisionLocation = getCollisionLocation(boundaries);
+        if (collisionLocation == null) {
+            return force;
+        } else {
+            double collisionDistance = getDistance2D(start, collisionLocation, jumpAngleCos);
+            double timeToPassDistance = getTimeToPassDistance(collisionDistance, velocity);
+
+            double collidingTime = JUMP_PEEK_TIME * (force <= MAX_SINGLE_JUMP_POWER ? 1 : 2) - timeToPassDistance;
+            if (collidingTime > 0) {
+                //Collision will occur...
+                double collisionCoef = 1 + (collidingTime / JUMP_PEEK_TIME);
+                force = Math.min(MAX_DOUBLE_JUMP_POWER, force * collisionCoef);
+                log.log(Level.FINER, "Possible jump collision detected, adjusting power. NEW POWER: {0}", force);
+            }
+
+            return force;
+        }
+
+    }
+
+    public Double computeJump(double targetZ, double distance2d, double velocity, double jumpAngleCos) {
+
         if (!isJumpable(distance2d, velocity, targetZ)) {
             //We are not able to jump there
             log.finer("We are not able to jump there!");
@@ -304,18 +325,42 @@ public class JumpModule {
             power = getDoubleJumpPower(targetZ, timeToPassDistance - 0.055, UnrealUtils.FULL_DOUBLEJUMP_DELAY);
         }
 
-        if ((power > 340 && timeToPassDistance < 0.78) || (power < 340 && timeToPassDistance < 0.39)) {
+        //Solved in jump computign -  ||
+        if ((power < 340 && timeToPassDistance < 0.39) || (power > 340 && timeToPassDistance < 0.78)) {
             double resultZ = getZDiffForJump(power, timeToPassDistance - 0.055, power > MAX_SINGLE_JUMP_POWER, 0.39);
             log.log(Level.FINER, "Computing jump Z for checking. Result: {0}", resultZ);
-            while (resultZ < end.z - start.z) {
-                log.log(Level.FINER, "Computing jump. Checking power. Wanted Z: {0}, Computed Z: {1}, increasing power by 50", new Object[]{end.z, resultZ});
+            double lastZ = -1000;
+            while (resultZ < targetZ && resultZ > lastZ && power <= MAX_DOUBLE_JUMP_POWER) {
+                log.log(Level.FINER, "Computing jump. Checking power. Wanted Z: {0}, Computed Z: {1}, increasing power by 50", new Object[]{targetZ, resultZ});
                 power += 50;
+                lastZ = resultZ;
                 resultZ = getZDiffForJump(power, timeToPassDistance - 0.055, power > MAX_SINGLE_JUMP_POWER, 0.39);
             }
+            power = Math.min(power, MAX_DOUBLE_JUMP_POWER);
             log.log(Level.FINER, "Computing jump. Final power: {0}", power);
         }
 
         return power;
+    }
+
+    private double getDistance2D(Location start, Location end, double jumpAngleCos) {
+        //TODO: Add take-off delay
+        //TODO: Added angle distance correction
+        double distance2d = start.getDistance2D(end);
+        if (log.isLoggable(Level.FINER)) {
+            log.log(Level.FINER, "Computing jump. Distance2D: {0} AngleCos: {1}", new Object[]{distance2d, jumpAngleCos});
+        }
+        if (jumpAngleCos > 0) {
+            distance2d = start.getDistance2D(end) / jumpAngleCos;
+            if (log.isLoggable(Level.FINER)) {
+                log.log(Level.FINER, "Computing jump. Distance2D after angle correction: {0}", distance2d);
+            }
+        } else {
+            if (log.isLoggable(Level.FINER)) {
+                log.log(Level.FINER, "Computing jump. Jump angle is > 90, no angle correction: {0}", distance2d);
+            }
+        }
+        return distance2d;
     }
 
     public boolean isJumpable(Location start, Location end, double velocity) {
@@ -332,11 +377,16 @@ public class JumpModule {
 
         return isJumpable(distance2d, velocity, end.z - start.z);
     }
-    
+
     private boolean isJumpable(double distance2d, double velocity, double zDiff) {
         double timeToPassDistance = getTimeToPassDistance(distance2d, velocity);
 
-        double computedZDiff = getZDiffForJump(MAX_DOUBLE_JUMP_POWER, timeToPassDistance, true, 0.39);
+        double computedZDiff;
+        if (timeToPassDistance < 2 * JUMP_PEEK_TIME) {
+            computedZDiff = MAX_JUMP_HEIGHT;
+        } else {
+            computedZDiff = getZDiffForJump(MAX_DOUBLE_JUMP_POWER, timeToPassDistance, true, 0.39);
+        }
 
         return computedZDiff >= zDiff;
     }
@@ -431,9 +481,65 @@ public class JumpModule {
         return computedZDiff >= zDiff;
     }
 
-    public double getJumpCorrection(JumpBoundaries boundaries) {
+    public Location getCollisionLocation(JumpBoundaries boundaries) {
 
-        return 0;
+        if (!boundaries.isJumpUp()) {
+            return null;
+        }
+        if (boundaries.getTargetEdgeDirection() == null) {
+            return null;
+        }
+
+        Location edgeDirection = boundaries.getTargetEdgeDirection().setZ(0).getNormalized();
+        Location computedDirection = boundaries.getLandingTarget().sub(boundaries.getTakeOffMax()).setZ(0).getNormalized();
+        Location verticalDirection = new Location(edgeDirection.y, -edgeDirection.x);
+
+        double angleCos = verticalDirection.dot(computedDirection);
+
+        double correctionDistance = (2 * BOT_RADIUS) / angleCos;
+
+        double koef = correctionDistance / boundaries.getLandingTarget().getDistance2D(boundaries.getTakeOffMax());
+
+        Location collisionLocation;
+        if (koef > 1.0) {
+            collisionLocation = boundaries.getTakeOffMax();
+        } else {
+            collisionLocation = boundaries.getLandingTarget().interpolate(boundaries.getTakeOffMax(), koef);
+        }
+
+        return collisionLocation;
+    }
+
+    public Location getNearestMeshDirection(Location location, Location direction) {
+
+        //TODO: Not good enough - centre of polygon not suitable for big polygons
+        NavMeshPolygon poly = navMesh.getNearestPolygon(location);
+
+        Line2D ray = new Line2D(location.x, location.y, location.x + direction.x * 10000, location.y + direction.y * 10000);
+
+        int[] polygon = navMesh.getPolygon(poly.getPolygonId());
+        for (int i = 0; i < polygon.length; i++) {
+            int v1 = polygon[i];
+            int v2 = polygon[((i == polygon.length - 1) ? 0 : i + 1)];
+            double[] vertex1 = navMesh.getVertex(v1);
+            double[] vertex2 = navMesh.getVertex(v2);
+            Line2D edge = new Line2D(vertex1[0], vertex1[1], vertex2[0], vertex2[1]);
+            Point2D cross = ray.getIntersection(edge);
+            if (cross != null) {
+                if (((cross.x <= Math.max(edge.p1.x, edge.p2.x) && cross.x >= Math.min(edge.p1.x, edge.p2.x)) || Math.abs(cross.x - edge.p1.x) < 0.0001)
+                        && ((cross.x <= Math.max(ray.p1.x, ray.p2.x) && cross.x >= Math.min(ray.p1.x, ray.p2.x)) || Math.abs(cross.x - ray.p1.x) < 0.0001)) {
+                    // is a cross!
+                    Location vertex1Loc = new Location(vertex1);
+                    Location vertex2Loc = new Location(vertex2);
+
+                    return vertex2Loc.sub(vertex1Loc);
+                } else {
+                    // it's not a cross
+                    cross = null;
+                }
+            }
+        }
+        return null;
     }
 
 }
