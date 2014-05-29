@@ -335,8 +335,16 @@ public class NavMeshTestBot extends EvaluatingBot {
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.InventorySpot132"));
             
             //Roughinery - jump down crooked
-            start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.InventorySpot109"));
-            end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.InventorySpot103"));
+            //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.InventorySpot109"));
+            //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.InventorySpot103"));
+            
+            //Test jumppad corrections
+//            start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Crash.InventorySpot19"));
+//            end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Crash.InventorySpot13"));
+            
+            //Teleports
+            start = navPoints.getNavPoint(UnrealId.get("DM-Inferno.PathNode69"));
+            end = navPoints.getNavPoint(UnrealId.get("DM-Inferno.InventorySpot41"));
         }
 
         switch (phase) {
@@ -378,7 +386,7 @@ public class NavMeshTestBot extends EvaluatingBot {
         fwMap = new FloydWarshallMap(bot);
         //pathPlanner = NavigationFactory.getPathPlanner(this, "navMesh");
         navigation = NavigationFactory.getNavigation(this, bot, "acc");
-
+        navMeshModule.setFwMap(fwMap);
 
         aStar = new UT2004AStar(bot);
         pathExecutor = navigation.getPathExecutor();

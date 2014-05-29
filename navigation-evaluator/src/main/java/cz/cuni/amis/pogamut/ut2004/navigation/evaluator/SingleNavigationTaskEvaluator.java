@@ -181,8 +181,10 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
             }
         }
         try {
-            currentLog = String.format("%s-%d.log", logPath.substring(0, logPath.length() - 4), iteration);
-            System.setOut(new PrintStream(currentLog));
+            if (logPath != null) {
+                currentLog = String.format("%s-%d.log", logPath.substring(0, logPath.length() - 4), iteration);
+                System.setOut(new PrintStream(currentLog));
+            }
         } catch (FileNotFoundException ex) {
         }
     }
@@ -236,4 +238,3 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
     }
 
 }
-

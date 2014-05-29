@@ -17,6 +17,7 @@
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator;
 
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.RecordType;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.jumppad.JumppadCollectorTask;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.EvaluationTaskFactory;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.IEvaluationTask;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.JumpInspectingTask;
@@ -43,7 +44,7 @@ public class TaskFileGenerator {
     public static final boolean isLab = true;
 
     //public static String statsPath = "base:";
-    public static String statsPath = "C:/Temp/Pogamut/stats/envelopes";
+    public static String statsPath = "C:/Temp/Pogamut/stats/jumppads";
 
     public static void main(String args[]) {
         
@@ -91,21 +92,23 @@ public class TaskFileGenerator {
         
         //myTasks.addAll(MapEnvelopeTask.createBatch(MapInfo.getAllMaps(), statsPath));
         
+          myTasks.addAll(JumppadCollectorTask.createBatch(MapInfo.getAllMaps(), statsPath));
+        
         //myTasks.addAll(NavigationEvaluationBatchTaskCreator.createBatch(Arrays.asList("navigation", "acc"), Arrays.asList("fwMap", "navMesh"), "CTF-1on1-Joust", true, -1, statsPath, RecordType.PATH_FAILED));
 
 //        XStream xstream = new XStream();
 //        xstream.from
 
         //DM-Crash task
-        NavigationEvaluationTask taskRepeat = new NavigationEvaluationRepeatTask("C:/Temp/Pogamut/stats/navigation_fwMap/DM-1on1-Crash/160114_112055/data.csv", "acc", "navMesh", "C:/Temp/Pogamut/stats/", RecordType.PATH_FAILED);
-        myTasks.add(taskRepeat);
+//        NavigationEvaluationTask taskRepeat = new NavigationEvaluationRepeatTask("C:/Temp/Pogamut/stats/navigation_fwMap/DM-1on1-Crash/160114_112055/data.csv", "acc", "navMesh", "C:/Temp/Pogamut/stats/", RecordType.PATH_FAILED);
+//        myTasks.add(taskRepeat);
         
 //        JumpInspectingTask jumpTask = new JumpInspectingTask();
 //        jumpTask.setResultPath(statsPath);
 //        myTasks.add(jumpTask);
 
         for (IEvaluationTask task : myTasks) {
-            EvaluationTaskFactory.toXml(task, "C:/Temp/Pogamut/repeat/");
+            EvaluationTaskFactory.toXml(task, "C:/Temp/Pogamut/jumppad/");
         }
     }
 }

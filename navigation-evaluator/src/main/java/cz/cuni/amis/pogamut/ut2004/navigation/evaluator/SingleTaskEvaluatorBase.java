@@ -80,6 +80,9 @@ public abstract class SingleTaskEvaluatorBase {
      * @param logPath
      */
     protected void setupLog(String logPath) {
+        if (logPath == null) {
+            return;
+        }
         try {
             if (REDIRECT_LOG) {
                 System.setOut(new PrintStream(logPath));

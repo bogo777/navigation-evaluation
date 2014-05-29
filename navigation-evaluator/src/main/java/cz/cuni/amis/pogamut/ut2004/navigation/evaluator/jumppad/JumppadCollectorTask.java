@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 AMIS research group, Faculty of Mathematics and Physics, Charles University in Prague, Czech Republic
+ * Copyright (C) 2014 AMIS research group, Faculty of Mathematics and Physics, Charles University in Prague, Czech Republic
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,38 +14,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task;
+package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.jumppad;
 
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.EnvelopeBot;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.TaskBotParameters;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.EvaluationTask;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 
 /**
- * Task for evaluation of types of map paths.
  *
  * @author Bogo
  */
-public class MapEnvelopeTask extends EvaluationTask<TaskBotParameters, EnvelopeBot> implements IEvaluationTask<TaskBotParameters, EnvelopeBot> {
+public class JumppadCollectorTask extends EvaluationTask<TaskBotParameters, JumppadCollectorBot> {
 
     private String mapName;
     private String resultPath;
 
-    private MapEnvelopeTask() {
-        super(TaskBotParameters.class, EnvelopeBot.class);
+    public JumppadCollectorTask() {
+        super(TaskBotParameters.class, JumppadCollectorBot.class);
     }
 
-    /**
-     * Default constructor.
-     *
-     * @param mapName
-     * @param resultPath
-     */
-    public MapEnvelopeTask(String mapName, String resultPath) {
+    private JumppadCollectorTask(String map, String resultPath) {
         this();
-        this.mapName = mapName;
+        this.mapName = map;
         this.resultPath = resultPath;
     }
 
@@ -62,11 +55,11 @@ public class MapEnvelopeTask extends EvaluationTask<TaskBotParameters, EnvelopeB
     }
 
     public String getLogPath() {
-        return getResultPath() + "log.log";
+        return null;
     }
 
     public String getFileName() {
-        return String.format("%s.envelope", mapName);
+        return String.format("%s.jumppads", mapName);
     }
 
     public void setResultBasePath(String basePath) {
@@ -74,19 +67,20 @@ public class MapEnvelopeTask extends EvaluationTask<TaskBotParameters, EnvelopeB
     }
 
     public TaskBotParameters getBotParams() {
-        return new TaskBotParameters<MapEnvelopeTask>(this);
+        return new TaskBotParameters<JumppadCollectorTask>(this);
     }
 
     public Level getLogLevel() {
         return Level.OFF;
     }
 
-    public static List<MapEnvelopeTask> createBatch(List<String> mapNames, String resultPath) {
-        List<MapEnvelopeTask> list = new ArrayList<MapEnvelopeTask>(mapNames.size());
+    public static List<JumppadCollectorTask> createBatch(List<String> mapNames, String resultPath) {
+        List<JumppadCollectorTask> list = new ArrayList<JumppadCollectorTask>(mapNames.size());
         for (String map : mapNames) {
-            MapEnvelopeTask task = new MapEnvelopeTask(map, resultPath);
+            JumppadCollectorTask task = new JumppadCollectorTask(map, resultPath);
             list.add(task);
         }
         return list;
     }
+
 }

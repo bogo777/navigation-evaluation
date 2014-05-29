@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 AMIS research group, Faculty of Mathematics and Physics, Charles University in Prague, Czech Republic
+ * Copyright (C) 2014 AMIS research group, Faculty of Mathematics and Physics, Charles University in Prague, Czech Republic
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,31 +14,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot;
+
+package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.jumppad;
 
 import cz.cuni.amis.pogamut.unreal.communication.messages.UnrealId;
-import cz.cuni.amis.pogamut.ut2004.communication.messages.gbcommands.Initialize;
 import cz.cuni.amis.pogamut.ut2004.communication.messages.gbinfomessages.NavPoint;
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.data.EnvelopeResult;
-import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapEnvelopeTask;
-import java.util.Map.Entry;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.EvaluatingBot;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot.TaskBotParameters;
+import java.util.Map;
 
 /**
- * Bot for evaluation of map paths.
  *
  * @author Bogo
  */
-public class EnvelopeBot extends EvaluatingBot {
+public class JumppadCollectorBot extends EvaluatingBot {
     
-    public TaskBotParameters<MapEnvelopeTask> getParams() {
-        return (TaskBotParameters<MapEnvelopeTask>) bot.getParams();
+    public TaskBotParameters<JumppadCollectorTask> getParams() {
+        return (TaskBotParameters<JumppadCollectorTask>) bot.getParams();
     }
-
-    @Override
-    public Initialize getInitializeCommand() {
-        return new Initialize().setName("EnvelopeBot");
-    }
-
+    
     /**
      * This method is called only once right before actual logic() method is
      * called for the first time.
@@ -46,22 +40,26 @@ public class EnvelopeBot extends EvaluatingBot {
     @Override
     public void beforeFirstLogic() {
         
-        EnvelopeResult envelope = new EnvelopeResult(getParams().getTask());
+        JumppadResult jumppads = new JumppadResult(getParams().getTask());
 
         //Preprocessing navigation graph - removing disabled links
-        for (Entry<UnrealId, NavPoint> entry : navPoints.getNavPoints().entrySet()) {
+        for (Map.Entry<UnrealId, NavPoint> entry : navPoints.getNavPoints().entrySet()) {
             NavPoint navPoint = entry.getValue();
             
-            envelope.checkNavPoint(navPoint);
+            if(navPoint.isJumpPad()) {
+                jumppads.add(navPoint);
+            }
+            
             
         }
 
         //Wrap up and end
-        envelope.export();
+        jumppads.export();
 
         isCompleted = true;
 
         bot.stop();
 
     }
+    
 }

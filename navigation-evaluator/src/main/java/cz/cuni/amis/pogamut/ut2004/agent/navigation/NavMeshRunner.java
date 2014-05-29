@@ -643,11 +643,11 @@ public class NavMeshRunner implements IUT2004PathRunner {
         } else if (jumpForce < 0) {
             //We don't need to jump, so we will set
             debug("initJump(): We don't need to jump, continuing with move! Computed force: " + jumpForce);
-//            if (jumpBoundaries.isJumpable()) {
-//                //TODO: Jump down
-//
-//                Location movementDirection = jumpBoundaries.getLandingTarget().sub(jumpBoundaries.getTakeOffMax()).setZ(0).getNormalized();
-//                Location meshDirection = jumpBoundaries.getTakeoffEdgeDirection();
+            if (jumpBoundaries.isJumpable() && (this.jumpBoundaries.getTakeoffEdgeDirection() != null)) {
+                //TODO: Jump down
+
+                Location movementDirection = jumpBoundaries.getLandingTarget().sub(jumpBoundaries.getTakeOffMax()).setZ(0).getNormalized();
+                Location meshDirection = jumpBoundaries.getTakeoffEdgeDirection();
 //                if (meshDirection == null) {
 //                    meshDirection = jumpModule.getNearestMeshDirection(memory.getLocation(), movementDirection);
 //                }
@@ -657,24 +657,25 @@ public class NavMeshRunner implements IUT2004PathRunner {
 //                    jumpStep = 1;
 //                    return true;
 //                }
-//                double fallAngleCos = meshDirection.setZ(0).getNormalized().dot(movementDirection);
-//                double takeOffDistance = jumpBoundaries.getLandingTarget().getDistance2D(jumpBoundaries.getTakeOffMax());
-//                if (Math.abs(fallAngleCos) > Math.cos(Math.PI / 2.5)) {
-//                    //Not direct approach, we should propably jump a little.
-//                    debug("initJump(): Not direct approach to fall, we should jump a little. Angle: " + Math.acos(fallAngleCos) * (180 / Math.PI));
-//                    fallDownJump = true;
-//                    jumpBoundaries.setLandingTarget(jumpBoundaries.getTakeOffMax().interpolate(jumpBoundaries.getLandingTarget(), 1 + (IDEAL_JUMP_RESERVE / takeOffDistance)));
-//                    return true;
-//                } else {
-//                    debug("initJump(): Fall solved by not jumping, as angle is suitable. AngleCos: " + fallAngleCos);
-//                    jumpStep = 1;
-//                    return true;
-//                }
-//            } else {
-//                debug("initJump(): Fall solved by not jumping, as angle is suitable. Boundaries not jumpable.");
+                double fallAngleCos = meshDirection.setZ(0).getNormalized().dot(movementDirection);
+                double takeOffDistance = jumpBoundaries.getLandingTarget().getDistance2D(jumpBoundaries.getTakeOffMax());
+                if (Math.abs(fallAngleCos) > Math.cos(Math.PI / 2.5)) {
+                    //Not direct approach, we should propably jump a little.
+                    debug("initJump(): Not direct approach to fall, we should jump a little. Angle: " + Math.acos(fallAngleCos) * (180 / Math.PI));
+                    fallDownJump = true;
+                    //TODO: Fixed here
+                    jumpBoundaries.setLandingTarget(jumpBoundaries.getTakeOffMax().interpolate(jumpBoundaries.getLandingTarget(), (IDEAL_JUMP_RESERVE / takeOffDistance)));
+                    return true;
+                } else {
+                    debug("initJump(): Fall solved by not jumping, as angle is suitable. AngleCos: " + fallAngleCos);
+                    jumpStep = 1;
+                    return true;
+                }
+            } else {
+                debug("initJump(): Fall solved by not jumping, as angle is suitable. Boundaries not jumpable.");
                 jumpStep = 1;
                 return true;
-//            }
+            }
         } else {
             jumpStep = 1; // we have performed the JUMP
             return jump(doubleJump, UnrealUtils.FULL_DOUBLEJUMP_DELAY, jumpForce);

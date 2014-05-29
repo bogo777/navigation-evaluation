@@ -805,6 +805,10 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
             // we need to jump to reach the destination ... do not switch based on localDistance2
             localDistance2D = 10000;
         }
+        
+        if(navigStage.teleport) {
+            testDistance = 10;
+        }
 
         if (navigCurrentLocation != null && navigCurrentLocation.equals(executor.getPath().get(executor.getPath().size() - 1))
                 || (!navigIterator.hasNext() && (navigNextLocation == null || navigCurrentLocation == navigNextLocation))) {
@@ -828,7 +832,7 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
         }
 
         Location botCurrentLocation = memory.getLocation();
-        if (navigCurrentLocation != null && navigLastLocation != null && navigNextLocation != null && botCurrentLocation != null) {
+        if (navigCurrentLocation != null && navigLastLocation != null && navigNextLocation != null && botCurrentLocation != null && !navigStage.teleport) {
 
             //Test case for passing navig node without switching target
             Location navigDirection = navigCurrentLocation.sub(navigLastLocation);
@@ -840,15 +844,9 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
                 Location altDirection = navigNextLocation.sub(botCurrentLocation).getNormalized();
                 double angle = Math.acos(navigDirection.getNormalized().dot(altDirection));
 
-                boolean isZOk = true;
-                if (navigCurrentLocation.z < navigNextLocation.z) {
-                    isZOk = botCurrentLocation.z > navigCurrentLocation.z - 30 && botCurrentLocation.z < navigNextLocation.z + 30;
-                } else {
-                    isZOk = botCurrentLocation.z < navigCurrentLocation.z + 30 && botCurrentLocation.z > navigNextLocation.z - 30;
-                }
-
-                if (angle < Math.PI / 2 && isZOk) {
+                if (angle < Math.PI / 2) {
                     if (botCurrentLocation.getDistance(navigNextLocation) < navigCurrentLocation.getDistance(navigNextLocation)) {
+                        log.fine("We are closer to next target than current, switching to next node");
                         // switch navigation to the next node
                         if (!switchToNextNode()) {
                             // switch to the direct navigation
@@ -1133,7 +1131,7 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
         }
 
         // now as we've tested the first node ... test the second one
-        if (!switchedToNextNode && ((localDistance1_1 < 200) || (localDistance1_2 < 200))) {
+        if (!switchedToNextNode && ((localDistance1_1 < 20) || (localDistance1_2 < 20))) {
             // switch navigation to the next node
             if (!switchToNextNode()) {
                 // switch to the direct navigation

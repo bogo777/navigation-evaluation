@@ -325,7 +325,8 @@ public class JumpModule {
             power = getDoubleJumpPower(targetZ, timeToPassDistance - 0.055, UnrealUtils.FULL_DOUBLEJUMP_DELAY);
         }
 
-        if ((power < 340 && timeToPassDistance < 0.39) || (power > 340 && timeToPassDistance < 0.78)) {
+        //TODO: || (power > 340 && timeToPassDistance < 0.78)
+        if ((power < 340 && timeToPassDistance < 0.39)) {
             double resultZ = getZDiffForJump(power, timeToPassDistance - 0.055, power > MAX_SINGLE_JUMP_POWER, 0.39);
             double lastZ;
             log.log(Level.FINER, "Computing jump Z for checking. Result: {0}", resultZ);

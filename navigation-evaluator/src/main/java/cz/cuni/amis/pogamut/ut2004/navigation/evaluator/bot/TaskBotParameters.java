@@ -18,25 +18,27 @@
 package cz.cuni.amis.pogamut.ut2004.navigation.evaluator.bot;
 
 import cz.cuni.amis.pogamut.ut2004.bot.params.UT2004BotParameters;
+import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.EvaluationTask;
 import cz.cuni.amis.pogamut.ut2004.navigation.evaluator.task.MapEnvelopeTask;
 
 /**
  *
  * @author Bogo
+ * @param <T>
  */
-public class MapEnvelopeBotParameters extends UT2004BotParameters {
+public class TaskBotParameters<T extends EvaluationTask> extends UT2004BotParameters {
     
-    private MapEnvelopeTask task;
+    private T task;
 
-    public MapEnvelopeBotParameters(MapEnvelopeTask task) {
+    public TaskBotParameters(T task) {
         this.task = task;
     }
 
-    public MapEnvelopeTask getTask() {
+    public T getTask() {
         return task;
     }
 
-    public void setTask(MapEnvelopeTask task) {
+    public void setTask(T task) {
         this.task = task;
     }
     
