@@ -201,7 +201,7 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
             if (!oldResult.isDirectory()) {
                 continue;
             }
-            if(oldResult.equals(newResultDir)) {
+            if (oldResult.equals(newResultDir)) {
                 continue;
             }
             if (oldResult.lastModified() > lastResultModification) {
@@ -228,11 +228,12 @@ public class SingleNavigationTaskEvaluator extends SingleTaskEvaluator {
         if (resultFile.exists()) {
             results.loadFromFile(resultFile, pathContainer.size());
         }
-        
+
         ExtendedBotNavigationParameters params = new ExtendedBotNavigationParameters(task, pathContainer, results);
         params.setIteration(results.getProcessedCount() / ServerRunner.getPathRecordsLimit() + 1);
-        
+
         return params;
     }
 
 }
+

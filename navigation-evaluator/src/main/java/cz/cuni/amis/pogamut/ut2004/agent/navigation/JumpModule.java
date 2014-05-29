@@ -325,16 +325,20 @@ public class JumpModule {
             power = getDoubleJumpPower(targetZ, timeToPassDistance - 0.055, UnrealUtils.FULL_DOUBLEJUMP_DELAY);
         }
 
-        //Solved in jump computign -  ||
         if ((power < 340 && timeToPassDistance < 0.39) || (power > 340 && timeToPassDistance < 0.78)) {
             double resultZ = getZDiffForJump(power, timeToPassDistance - 0.055, power > MAX_SINGLE_JUMP_POWER, 0.39);
+            double lastZ;
             log.log(Level.FINER, "Computing jump Z for checking. Result: {0}", resultZ);
-            double lastZ = -1000;
-            while (resultZ < targetZ && resultZ > lastZ && power <= MAX_DOUBLE_JUMP_POWER) {
+            while (resultZ < targetZ && power < MAX_DOUBLE_JUMP_POWER) {
                 log.log(Level.FINER, "Computing jump. Checking power. Wanted Z: {0}, Computed Z: {1}, increasing power by 50", new Object[]{targetZ, resultZ});
                 power += 50;
                 lastZ = resultZ;
                 resultZ = getZDiffForJump(power, timeToPassDistance - 0.055, power > MAX_SINGLE_JUMP_POWER, 0.39);
+                if (lastZ > resultZ) {
+                    //We overdid the power increase
+                    power -= 50;
+                    break;
+                }
             }
             power = Math.min(power, MAX_DOUBLE_JUMP_POWER);
             log.log(Level.FINER, "Computing jump. Final power: {0}", power);
@@ -533,9 +537,6 @@ public class JumpModule {
                     Location vertex2Loc = new Location(vertex2);
 
                     return vertex2Loc.sub(vertex1Loc);
-                } else {
-                    // it's not a cross
-                    cross = null;
                 }
             }
         }

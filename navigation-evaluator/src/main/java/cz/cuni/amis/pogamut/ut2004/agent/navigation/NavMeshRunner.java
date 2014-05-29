@@ -643,7 +643,6 @@ public class NavMeshRunner implements IUT2004PathRunner {
         } else if (jumpForce < 0) {
             //We don't need to jump, so we will set
             debug("initJump(): We don't need to jump, continuing with move! Computed force: " + jumpForce);
-            //TODO: Evaluate without this...
 //            if (jumpBoundaries.isJumpable()) {
 //                //TODO: Jump down
 //
@@ -672,10 +671,10 @@ public class NavMeshRunner implements IUT2004PathRunner {
 //                    return true;
 //                }
 //            } else {
-                debug("initJump(): Fall solved by not jumping, as angle is suitable. Boundaries not jumpable.");
+//                debug("initJump(): Fall solved by not jumping, as angle is suitable. Boundaries not jumpable.");
                 jumpStep = 1;
                 return true;
-            //}
+//            }
         } else {
             jumpStep = 1; // we have performed the JUMP
             return jump(doubleJump, UnrealUtils.FULL_DOUBLEJUMP_DELAY, jumpForce);
