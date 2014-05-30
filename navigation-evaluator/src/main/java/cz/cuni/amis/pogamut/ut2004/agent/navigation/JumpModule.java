@@ -326,25 +326,24 @@ public class JumpModule {
         }
 
         //TODO: || (power > 340 && timeToPassDistance < 0.78)
-        if ((power < 340 && timeToPassDistance < 0.39)) {
-            double resultZ = getZDiffForJump(power, timeToPassDistance - 0.055, power > MAX_SINGLE_JUMP_POWER, 0.39);
-            double lastZ;
-            log.log(Level.FINER, "Computing jump Z for checking. Result: {0}", resultZ);
-            while (resultZ < targetZ && power < MAX_DOUBLE_JUMP_POWER) {
-                log.log(Level.FINER, "Computing jump. Checking power. Wanted Z: {0}, Computed Z: {1}, increasing power by 50", new Object[]{targetZ, resultZ});
-                power += 50;
-                lastZ = resultZ;
-                resultZ = getZDiffForJump(power, timeToPassDistance - 0.055, power > MAX_SINGLE_JUMP_POWER, 0.39);
-                if (lastZ > resultZ) {
-                    //We overdid the power increase
-                    power -= 50;
-                    break;
-                }
-            }
-            power = Math.min(power, MAX_DOUBLE_JUMP_POWER);
-            log.log(Level.FINER, "Computing jump. Final power: {0}", power);
-        }
-
+//        if ((power < 340 && timeToPassDistance < 0.39)) {
+//            double resultZ = getZDiffForJump(power, timeToPassDistance - 0.055, power > MAX_SINGLE_JUMP_POWER, 0.39);
+//            double lastZ;
+//            log.log(Level.FINER, "Computing jump Z for checking. Result: {0}", resultZ);
+//            while (resultZ < targetZ && power < MAX_DOUBLE_JUMP_POWER) {
+//                log.log(Level.FINER, "Computing jump. Checking power. Wanted Z: {0}, Computed Z: {1}, increasing power by 50", new Object[]{targetZ, resultZ});
+//                power += 50;
+//                lastZ = resultZ;
+//                resultZ = getZDiffForJump(power, timeToPassDistance - 0.055, power > MAX_SINGLE_JUMP_POWER, 0.39);
+//                if (lastZ > resultZ) {
+//                    //We overdid the power increase
+//                    power -= 50;
+//                    break;
+//                }
+//            }
+//            power = Math.min(power, MAX_DOUBLE_JUMP_POWER);
+//            log.log(Level.FINER, "Computing jump. Final power: {0}", power);
+//        }
         return power;
     }
 
@@ -435,6 +434,10 @@ public class JumpModule {
     }
 
     public double getSingleJumpPower(double targetZ, double time) {
+        if (time < JUMP_PEEK_TIME) {
+            time = JUMP_PEEK_TIME;
+        }
+
         double power = (targetZ + 475 * time * time) / time;
 
         if (power > MAX_SINGLE_JUMP_POWER) {
@@ -446,6 +449,10 @@ public class JumpModule {
 
     public double getDoubleJumpPower(double targetZ, double time, double delay) {
         double power;
+
+        if (time < 2 * JUMP_PEEK_TIME) {
+            time = 2 * JUMP_PEEK_TIME;
+        }
 
         if (time < delay) {
             if (log.isLoggable(Level.FINER)) {
@@ -500,6 +507,18 @@ public class JumpModule {
         Location verticalDirection = new Location(edgeDirection.y, -edgeDirection.x);
 
         double angleCos = verticalDirection.dot(computedDirection);
+
+        double xAngle = edgeDirection.dot(computedDirection);
+        if (Math.abs(xAngle) < Math.cos(Math.PI / 3)) {
+            if (log.isLoggable(Level.FINER)) {
+                log.log(Level.FINER, "Computing collision. Ignoring collision. Edge to mesh angle cos: {0}", xAngle);
+            }
+            return null;
+        }
+
+        if (log.isLoggable(Level.FINER)) {
+            log.log(Level.FINER, "Computing collision. Angle cos: {0}", angleCos);
+        }
 
         double correctionDistance = (2 * BOT_RADIUS) / angleCos;
 

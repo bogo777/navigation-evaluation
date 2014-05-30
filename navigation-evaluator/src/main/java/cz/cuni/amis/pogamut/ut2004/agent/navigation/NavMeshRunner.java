@@ -483,15 +483,15 @@ public class NavMeshRunner implements IUT2004PathRunner {
             jumpIndicated = true;
         }
 
-        if (jumpDistance2D < 250) {
-            debug("resolveJump(): we've missed all jumping opportunities (jumpDistance2D < 250)");
-            if (runnerStep > 1) {
-                debug("resolveJump(): and runnerStep > 1, if indicated we will be forced to jump right now");
-                mustJumpIfIndicated = true;
-            } else {
-                debug("resolveJump(): but runnerStep <= 1, can't force jump yet");
-            }
-        }
+//        if (jumpDistance2D < 250) {
+//            debug("resolveJump(): we've missed all jumping opportunities (jumpDistance2D < 250)");
+//            if (runnerStep > 1) {
+//                debug("resolveJump(): and runnerStep > 1, if indicated we will be forced to jump right now");
+//                mustJumpIfIndicated = true;
+//            } else {
+//                debug("resolveJump(): but runnerStep <= 1, can't force jump yet");
+//            }
+//        }
 
         debug("resolveJump(): jumpIndicated       = " + jumpIndicated);
         debug("resolveJump(): mustJumpIfIndicated = " + mustJumpIfIndicated);

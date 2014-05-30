@@ -243,69 +243,53 @@ public class NavMeshTestBot extends EvaluatingBot {
 
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot94"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot117"));
-            
             //CASE: Jump down
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot81"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot102"));
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot101"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot68"));
-            
             //CASE: Stop unexpected - high NavPoint
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot119"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.PlayerStart5"));
-            
             //Stuck in jump?
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.PlayerStart6"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot98"));
-            
             //Jump up to steep platform
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot72"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot124"));
-            
             //Lift - too far for AWAITING_MOVER
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot99"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot80"));
-            
             //Collision - Jumping detours
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot74"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot85"));
-            
             //Jump to low ceiling
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot115"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot100"));
-            
             //Jump to low ceiling
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot95"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot96"));
-            
             //PathNode2 - Bad path
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot131"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.PlayerStart6"));
-            
             //PathNode2
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot71"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.InventorySpot93"));
-            
             //Zabradli - internal collision detector
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Mixer.InventorySpot11"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Mixer.InventorySpot30"));
-            
             //Double jump up
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Idoma.InventorySpot1"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Idoma.InventorySpot14"));
-            
             //Long jump 
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Idoma.InventorySpot0"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Idoma.PlayerStart5"));
-            
             //Strange path - Bad placement of NavPoints to polygon(bad floor?!)
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Idoma.InventorySpot11"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Idoma.InventorySpot19"));
-            
             //Strange path - Bad placement of NavPoints to polygon(bad floor?!) #2
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Idoma.InventorySpot13"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Idoma.InventorySpot28"));
-            
 //            int id = navMeshModule.getNavMesh().getPolygonIdByLocation(navPoints.getNavPoint(UnrealId.get("DM-Gestalt.InventorySpot17")).getLocation());
 //            //int id = 84;
 //            List<OffMeshPoint> offPoints = navMeshModule.getNavMesh().getOffMeshPoinsOnPolygon(id);
@@ -313,48 +297,56 @@ public class NavMeshTestBot extends EvaluatingBot {
 //            double[] vertex = navMeshModule.getNavMesh().getVertex(polygon[0]);
 //            double z = vertex[2];
 //            ArrayList neighbours = navMeshModule.getNavMesh().getNeighbourIdsToPolygon(id);
-            
             //Bad path - SOLVED?
             //start = navPoints.getNavPoint(UnrealId.get("DM-Gestalt.InventorySpot22"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-Gestalt.InventorySpot24"));
-            
             //Jump down through lift - NOT SOLVED
             //start = navPoints.getNavPoint(UnrealId.get("DM-Gestalt.InventorySpot16"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-Gestalt.InventorySpot20"));
-            
             //Up movement with rotation - bad mesh
             //start = navPoints.getNavPoint(UnrealId.get("DM-Injector.InventorySpot14"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-Injector.InventorySpot29"));
-            
             //Roughinery - solved
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.PathNode60"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.InventorySpot119"));
-            
             //Roughinery - solved
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.InventorySpot105"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.InventorySpot132"));
-            
             //Roughinery - jump down crooked
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.InventorySpot109"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.InventorySpot103"));
-            
             //Test jumppad corrections - SOLVED
 //            start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Crash.InventorySpot19"));
 //            end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Crash.InventorySpot13"));
-            
             //Teleports - SOLVED
             //start = navPoints.getNavPoint(UnrealId.get("DM-Inferno.PathNode69"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-Inferno.InventorySpot41"));
-            
             //Serpentine - exact jumping
-            start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Serpentine.InventorySpot35"));
-            end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Serpentine.InventorySpot3"));
-            
+            //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Serpentine.InventorySpot35"));
+            //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Serpentine.InventorySpot3"));
             //Serpentine - exact jumping
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Serpentine.InventorySpot16"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Serpentine.PlayerStart17"));
+            //CASE: TD - Not Built
+            //start = navPoints.getNavPoint(UnrealId.get("DM-TrainingDay.InventorySpot42"));
+            //end = navPoints.getNavPoint(UnrealId.get("DM-TrainingDay.InventorySpot60"));
             
             
+            //Roughinery - unneccessary jump - 2x OUT of MESH edge - hacked
+//            start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.InventorySpot116"));
+//            end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.PlayerStart10"));
+            
+            start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.PlayerStart11"));
+            end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.InventorySpot113"));
+            
+//            int id = navMeshModule.getNavMesh().getPolygonIdByLocation(start.getLocation());
+////            //int id = 84;
+//            List<OffMeshPoint> offPoints = navMeshModule.getNavMesh().getOffMeshPoinsOnPolygon(id);
+//            int[] polygon = navMeshModule.getNavMesh().getPolygon(id);
+//            double[] vertex = navMeshModule.getNavMesh().getVertex(polygon[0]);
+//            double z = vertex[2];
+//            ArrayList neighbours = navMeshModule.getNavMesh().getNeighbourIdsToPolygon(id);
+
         }
 
         switch (phase) {
@@ -365,8 +357,10 @@ public class NavMeshTestBot extends EvaluatingBot {
             case AtStart:
                 if (info.atLocation(start)) {
                     IPathFuture<ILocated> path = navMesh.computePath(start, end);
-                    navMeshModule.getNavMesh().getPolygonPath(start.getLocation(), end.getLocation());
-                    navMeshModule.getNavMeshDraw().drawPath(path, new Location(255, 0, 0));
+                    //navMeshModule.getNavMesh().getPolygonPath(start.getLocation(), end.getLocation());
+                    if (path.get() != null) {
+                        navMeshModule.getNavMeshDraw().drawPath(path, new Location(255, 0, 0));
+                    }
                     navigation.navigate(path);
                     //act.act(new Move(navPoints.getNavPoint(UnrealId.get("DM-1on1-Trite.PathNode39")).getLocation(), end.getLocation(), null, end.getLocation()));
                     startedAt = new Date();
