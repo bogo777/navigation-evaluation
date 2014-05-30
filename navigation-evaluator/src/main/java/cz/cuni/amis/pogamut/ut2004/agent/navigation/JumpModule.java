@@ -397,13 +397,13 @@ public class JumpModule {
     }
 
     private double getTimeToPassDistance(double distance2d, double velocity) {
-        return distance2d / velocity;
+        //return distance2d / velocity;
         //TODO: Inspect - strange behaviour
-//        if (distance2d < velocity * SPEED_BOOST_DELAY) {
-//            return distance2d / velocity;
-//        } else {
-//            return SPEED_BOOST_DELAY + (distance2d - velocity * SPEED_BOOST_DELAY) / (velocity * JUMP_SPEED_BOOST);
-//        }
+        if (distance2d < velocity * SPEED_BOOST_DELAY) {
+            return distance2d / velocity;
+        } else {
+            return SPEED_BOOST_DELAY + (distance2d - velocity * SPEED_BOOST_DELAY) / (velocity * JUMP_SPEED_BOOST);
+        }
     }
 
     private static final double JUMP_SPEED_BOOST = 1.08959;
@@ -542,6 +542,22 @@ public class JumpModule {
             }
         }
         return null;
+    }
+
+    public double getCorrectedVelocity(double velocity, boolean isAccelerating) {
+        if (!isAccelerating) {
+            //TODO: Lower increase after some other condition?
+            return velocity;
+        } else {
+            return Math.min(UnrealUtils.MAX_VELOCITY, 0.9788 * velocity + 111);
+        }
+    }
+
+    public double getCorrectedAngle(double angleCos, boolean isFirstStep) {
+        if (isFirstStep) {
+            return angleCos;
+        }
+        return Math.cos(Math.acos(angleCos) / 2);
     }
 
 }

@@ -795,7 +795,7 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
 
         //CHANGED: Distance when to switch to next node -> for our movement on the edges with the navMesh, it needs to be pretty accurate...
         //ORIGINAL VALUE: 200
-        int testDistance = 40; // default constant suitable for default running 
+        int testDistance = 45; // default constant suitable for default running 
         if (navigCurrentNode != null && (navigCurrentNode.isLiftCenter() || navigCurrentNode.isLiftExit())) {
             // if we should get to lift exit or the lift center, we must use more accurate constants
             //CHANGED: Original - 150
@@ -804,10 +804,6 @@ public class NavMeshNavigator<PATH_ELEMENT extends ILocated> extends AbstractUT2
         if (navigCurrentLink != null && (navigCurrentLink.getFlags() & LinkFlag.JUMP.get()) != 0) {
             // we need to jump to reach the destination ... do not switch based on localDistance2
             localDistance2D = 10000;
-        }
-        
-        if(navigStage.teleport) {
-            testDistance = 10;
         }
 
         if (navigCurrentLocation != null && navigCurrentLocation.equals(executor.getPath().get(executor.getPath().size() - 1))

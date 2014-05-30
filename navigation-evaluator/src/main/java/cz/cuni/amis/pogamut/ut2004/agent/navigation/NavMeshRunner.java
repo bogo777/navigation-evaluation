@@ -179,6 +179,16 @@ public class NavMeshRunner implements IUT2004PathRunner {
     private boolean reachable;
 
     /**
+     * Current angle of the bot movement to the ideal direction
+     */
+    private double angle;
+
+    /**
+     * If the bot is accelerating
+     */
+    private boolean accelerating = false;
+
+    /**
      * Last received wall colliding event
      */
     protected WallCollision lastCollidingEvent = null;
@@ -186,8 +196,6 @@ public class NavMeshRunner implements IUT2004PathRunner {
      * If we have collided in last second we will signal it
      */
     private static final double WALL_COLLISION_THRESHOLD = 1;
-    private static final double JUMP_COMPUTATION_FAILED = 8192;
-    private boolean fallDownJump;
 
     public void reset() {
         // reset working info
@@ -201,9 +209,10 @@ public class NavMeshRunner implements IUT2004PathRunner {
         distanceZ = 0;
         velocity = 0;
         velocityZ = 0;
+        angle = 0;
         jumpRequired = false;
         jumpBoundaries = null;
-        fallDownJump = false;
+        accelerating = false;
     }
 
     public boolean runToLocation(Location runningFrom, Location firstLocation, Location secondLocation, ILocated focus, NavPointNeighbourLink navPointsLink, boolean reachable) {
@@ -223,7 +232,10 @@ public class NavMeshRunner implements IUT2004PathRunner {
         distance2D = memory.getLocation().getDistance2D(firstLocation);
         distanceZ = firstLocation.getDistanceZ(memory.getLocation());
 
-        velocity = memory.getVelocity().size();
+        double newVelocity = memory.getVelocity().size();
+        accelerating = isAccelerating(newVelocity, velocity);
+
+        velocity = newVelocity;
         velocityZ = memory.getVelocity().z;
         jumpRequired = !reachable || jumpModule.needsJump(link);
 
@@ -231,6 +243,12 @@ public class NavMeshRunner implements IUT2004PathRunner {
             jumpBoundaries = jumpModule.computeJumpBoundaries(link);
             debug("Computed jump boundaries. Jumpable: " + jumpBoundaries.isJumpable() + ", Start: " + jumpBoundaries.getTakeOffMin() + ", Ene: " + jumpBoundaries.getTakeOffMax());
         }
+
+        Location direction = Location.sub(firstLocation, memory.getLocation()).setZ(0);
+        direction = direction.getNormalized();
+        Location velocityDir = new Location(memory.getVelocity().asVector3d()).setZ(0);
+        velocityDir = velocityDir.getNormalized();
+        angle = direction.dot(velocityDir);
 
         logDebugData(firstLocation, secondLocation, focus, reachable);
 
@@ -294,6 +312,10 @@ public class NavMeshRunner implements IUT2004PathRunner {
         return true;
     }
 
+    private boolean isAccelerating(double newVelocity, double oldVelocity) {
+        return velocity > 0 && (isMaxVelocity(newVelocity) || newVelocity > oldVelocity);
+    }
+
     private void logDebugData(Location firstLocation, Location secondLocation, ILocated focus, boolean reachable) {
         // DEBUG LOG
         if (log != null && log.isLoggable(Level.FINER)) {
@@ -305,6 +327,7 @@ public class NavMeshRunner implements IUT2004PathRunner {
             debug("distanceZ     = " + distanceZ);
             debug("velocity      = " + velocity);
             debug("velocityZ     = " + velocityZ);
+            debug("angle         = " + Math.acos(angle) * (180 / Math.PI));
             debug("jumpRequired  = " + jumpRequired
                     + (!reachable ? " NOT_REACHABLE" : "")
                     + (link == null
@@ -511,13 +534,9 @@ public class NavMeshRunner implements IUT2004PathRunner {
     private boolean prepareJump(boolean jumpForced) {
         debug("prepareJump(): called");
 
-        Location direction = Location.sub(firstLocation, memory.getLocation()).setZ(0);
-        direction = direction.getNormalized();
-        Location velocityDir = new Location(memory.getVelocity().asVector3d()).setZ(0);
-        velocityDir = velocityDir.getNormalized();
-        Double jumpAngleDeviation = Math.acos(direction.dot(velocityDir));
+        Double jumpAngleDeviation = Math.acos(jumpModule.getCorrectedAngle(angle, runnerStep <= 1));
         jumpForced |= runnerStep > 1 && jumpBoundaries.isPastBoundaries(memory.getLocation());
-        Double jumpVelocity = Math.min(UnrealUtils.MAX_VELOCITY, velocity + 80);
+        Double jumpVelocity = jumpModule.getCorrectedVelocity(velocity, accelerating);
 
         boolean angleSuitable = !jumpAngleDeviation.isNaN() && jumpAngleDeviation < (Math.PI / 9);
 
@@ -586,7 +605,8 @@ public class NavMeshRunner implements IUT2004PathRunner {
 
         boolean doubleJump = true;
         Double jumpForce = Double.NaN;
-        Double jumpVelocity = Math.min(UnrealUtils.MAX_VELOCITY, velocity + 80);
+        Double jumpVelocity = jumpModule.getCorrectedVelocity(velocity, accelerating);
+        Double jumpAngleCos = jumpModule.getCorrectedAngle(angle, runnerStep <= 1);
 
         if (!jumpBoundaries.isJumpable()) {
             debug("initJump(): jump could not be made (distanceZ = " + distanceZ + " > 130)");
@@ -599,13 +619,6 @@ public class NavMeshRunner implements IUT2004PathRunner {
                 return true;
             }
         }
-
-        Location direction = Location.sub(firstLocation, memory.getLocation()).setZ(0);
-        direction = direction.getNormalized();
-        Location velocityDir = new Location(memory.getVelocity().asVector3d()).setZ(0);
-        velocityDir = velocityDir.getNormalized();
-        Double jumpAngleCos = direction.dot(velocityDir);
-        debug("initJump(): Computed jump angle: " + Math.acos(jumpAngleCos) * (180 / Math.PI));
 
         if (!jumpBoundaries.isJumpable()) {
             debug("Jump boundaries not present! We shouldn't be trying to JUMP!");
@@ -662,7 +675,6 @@ public class NavMeshRunner implements IUT2004PathRunner {
                 if (Math.abs(fallAngleCos) > Math.cos(Math.PI / 2.5)) {
                     //Not direct approach, we should propably jump a little.
                     debug("initJump(): Not direct approach to fall, we should jump a little. Angle: " + Math.acos(fallAngleCos) * (180 / Math.PI));
-                    fallDownJump = true;
                     //TODO: Fixed here
                     jumpBoundaries.setLandingTarget(jumpBoundaries.getTakeOffMax().interpolate(jumpBoundaries.getLandingTarget(), (IDEAL_JUMP_RESERVE / takeOffDistance)));
                     return true;
@@ -743,5 +755,9 @@ public class NavMeshRunner implements IUT2004PathRunner {
     }
 
     private double lastVelocityZ = 0.02;
+
+    private boolean isMaxVelocity(double newVelocity) {
+        return Math.abs(newVelocity - UnrealUtils.MAX_VELOCITY) < 5;
+    }
 
 }

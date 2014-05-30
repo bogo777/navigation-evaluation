@@ -114,7 +114,7 @@ public class JumpBoundaries {
     }
 
     public boolean isJumpUp() {
-        return jumpable && landingTarget.z > takeOffMax.z;
+        return jumpable && landingTarget.z - takeOffMax.z > 45;
     }
 
     public Location getTargetEdgeDirection() {

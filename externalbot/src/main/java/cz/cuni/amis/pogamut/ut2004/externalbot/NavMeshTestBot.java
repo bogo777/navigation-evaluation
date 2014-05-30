@@ -338,13 +338,23 @@ public class NavMeshTestBot extends EvaluatingBot {
             //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.InventorySpot109"));
             //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Roughinery.InventorySpot103"));
             
-            //Test jumppad corrections
+            //Test jumppad corrections - SOLVED
 //            start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Crash.InventorySpot19"));
 //            end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Crash.InventorySpot13"));
             
-            //Teleports
-            start = navPoints.getNavPoint(UnrealId.get("DM-Inferno.PathNode69"));
-            end = navPoints.getNavPoint(UnrealId.get("DM-Inferno.InventorySpot41"));
+            //Teleports - SOLVED
+            //start = navPoints.getNavPoint(UnrealId.get("DM-Inferno.PathNode69"));
+            //end = navPoints.getNavPoint(UnrealId.get("DM-Inferno.InventorySpot41"));
+            
+            //Serpentine - exact jumping
+            start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Serpentine.InventorySpot35"));
+            end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Serpentine.InventorySpot3"));
+            
+            //Serpentine - exact jumping
+            //start = navPoints.getNavPoint(UnrealId.get("DM-1on1-Serpentine.InventorySpot16"));
+            //end = navPoints.getNavPoint(UnrealId.get("DM-1on1-Serpentine.PlayerStart17"));
+            
+            
         }
 
         switch (phase) {
